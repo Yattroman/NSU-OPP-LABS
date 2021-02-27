@@ -1,5 +1,5 @@
-#ifndef OPP_NSU_LABS_MVOPERATIONS_H
-#define OPP_NSU_LABS_MVOPERATIONS_H
+#ifndef OPP_NSU_LABS_MVOPERATIONS_2ND_H
+#define OPP_NSU_LABS_MVOPERATIONS_2ND_H
 
 #include <cstdlib>
 #include <iostream>

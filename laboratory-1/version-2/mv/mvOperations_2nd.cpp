@@ -1,5 +1,5 @@
 #include <cstring>
-#include "mvOperations.h"
+#include "mvOperations_2nd.h"
 
 void printMatrix(double* matrix, int N){
     for(size_t i = 0; i < N; ++i){
@@ -39,11 +39,11 @@ double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
 
 double* mulMatrixAndVector(int N, double* matrix, double* vector){
     double* res = new double[N];
+    memset(res, 0, N);
 
     for(size_t i = 0; i < N; ++i) {
-        res[i] = 0;
         for (size_t j = 0; j < N; ++j) {
-            res[i] += matrix[i*N + j] * vector[j];
+            res[j] += matrix[i*N + j] * vector[j];
         }
     }
 

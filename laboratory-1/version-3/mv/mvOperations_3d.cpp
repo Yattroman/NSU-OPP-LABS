@@ -1,5 +1,5 @@
 #include <cstring>
-#include "mvOperations.h"
+#include "mvOperations_3rd.h"
 
 void printMatrix(double* matrix, int N){
     for(size_t i = 0; i < N; ++i){

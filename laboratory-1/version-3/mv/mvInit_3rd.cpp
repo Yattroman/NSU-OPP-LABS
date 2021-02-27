@@ -1,5 +1,5 @@
 #include <cstring>
-#include "mvInit.h"
+#include "mvInit_3rd.h"
 
 double* initMatrixA(int N){
     double* mA = new double[N*N];
