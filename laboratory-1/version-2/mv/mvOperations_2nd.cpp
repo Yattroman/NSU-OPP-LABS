@@ -1,10 +1,10 @@
 #include <cstring>
 #include "mvOperations_2nd.h"
 
-void printMatrix(double* matrix, int N){
-    for(size_t i = 0; i < N; ++i){
+void printMatrix(double* matrix, int M, int N){
+    for(size_t i = 0; i < M; ++i){
         for(size_t j = 0; j < N; ++j){
-            printf("%f ", matrix[j + i*N]);
+            printf("%f ", matrix[i*N + j]);
         }
         printf("\n");
     }
@@ -37,13 +37,13 @@ double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
     return res;
 }
 
-double* mulMatrixAndVector(int N, double* matrix, double* vector){
+double* mulMatrixAndVector(int M, int N, double* matrix, double* vector){
     double* res = new double[N];
-    memset(res, 0, N);
 
-    for(size_t i = 0; i < N; ++i) {
+    for(size_t i = 0; i < M; ++i) {
+        res[i] = 0;
         for (size_t j = 0; j < N; ++j) {
-            res[j] += matrix[i*N + j] * vector[j];
+            res[i] += matrix[i*N + j] * vector[j];
         }
     }
 

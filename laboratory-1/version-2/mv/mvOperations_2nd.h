@@ -5,10 +5,10 @@
 #include <iostream>
 #include <cmath>
 
-void printMatrix(double* matrix, int N);
+void printMatrix(double* matrix, int M, int N);
 void printVector(double * vector, int N);
 
-double* mulMatrixAndVector(int N, double* matrix, double* vector);
+double* mulMatrixAndVector(int M, int N, double* matrix, double* vector);
 
 double* subVectorAndVector(int N, double* vectorL, double* vectorR);
 double* sumVectorAndVector(int N, double* vectorL, double* vectorR);
