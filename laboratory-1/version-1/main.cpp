@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "mv/matrixVectorOperations.h"
-#include "mv/matrixVectorInit.h"
+#include "mv/mvOperations.h"
+#include "mv/mvInit.h"
 
 #define EPSILON 0.00001
 
