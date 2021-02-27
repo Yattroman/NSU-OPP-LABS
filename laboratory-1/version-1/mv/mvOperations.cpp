@@ -1,3 +1,4 @@
+#include <cstring>
 #include "mvOperations.h"
 
 void printMatrix(double* matrix, int N){
@@ -17,29 +18,28 @@ void printVector(double* vector, int N){
 }
 
 double* subVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = (double*) calloc(N,sizeof(double)*N);
+    double* res = new double[N];
 
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] - vectorR[j];
     }
 
-    free(vectorR);
     return res;
 }
 
 double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = (double*) calloc(N,sizeof(double)*N);
+    double* res = new double[N];
 
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] + vectorR[j];
     }
 
-    free(vectorR);
     return res;
 }
 
 double* mulMatrixAndVector(int N, double* matrix, double* vector){
-    double* res = (double*) calloc(N,sizeof(double)*N);
+    double* res = new double[N];
+    memset(res, 0, N);
 
     for(size_t i = 0; i < N; ++i) {
         for (size_t j = 0; j < N; ++j) {
@@ -73,7 +73,7 @@ double vectorLength(int N, const double* vector){ // Memory OK
 }
 
 double* mulVectorAndScalar(int N, double scalar, double* vector){
-    double* res = (double*) calloc(N,sizeof(double)*N);
+    double* res = new double[N];
 
     for(size_t i = 0; i < N; ++i) {
         for (size_t j = 0; j < N; ++j) {
