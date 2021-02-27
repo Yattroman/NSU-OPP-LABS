@@ -45,15 +45,14 @@ int main(int argc, char* argv[]){
 
         delete[] x[0];
         delete[] z[0];
-        //delete[] r[0];
 
         x[0] = x[1];
         z[0] = z[1];
         r[0] = r[1];
 
-//        for (size_t ui = 0; ui < 4; ++ui) {
-//            delete[] temp[ui];
-//        }
+        for (size_t ui = 0; ui < 4; ++ui) {
+            delete[] temp[ui];
+        }
 
         ++repeats;
         if( (vectorLength(N, r[1]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k+1)| / |b| < EPSILON
@@ -66,7 +65,8 @@ int main(int argc, char* argv[]){
     printVector(vecU, N);
     printVector(x[1], N);
 
-    printVector(mulMatrixAndVector(N, mA, vecU), N);
+    delete[] mA;
+    delete[] vecU;
 
     std::cout << repeats;
 
