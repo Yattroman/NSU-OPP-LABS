@@ -8,8 +8,8 @@ set(CMAKE_CXX_COMPILER "/usr/bin/mpicxx")
 include_directories(/usr/include/mpi/)
 
 set(LAB1V1_SOURCE laboratory-1/version-1/main.cpp laboratory-1/version-1/mv/mvInit.cpp laboratory-1/version-1/mv/mvOperations.cpp)
-set(LAB1V2_SOURCE laboratory-1/version-2/main.cpp)
-set(LAB1V3_SOURCE laboratory-1/version-2/main.cpp)
+set(LAB1V2_SOURCE laboratory-1/version-2/main.cpp laboratory-1/version-2/mv/mvInit.cpp laboratory-1/version-2/mv/mvOperations.cpp)
+set(LAB1V3_SOURCE laboratory-1/version-2/main.cpp laboratory-1/version-3/mv/mvInit.cpp laboratory-1/version-3/mv/mvOperations.cpp)
 
 add_executable(laboratory-1-v1 ${LAB1V1_SOURCE} )
 add_executable(laboratory-1-v2 ${LAB1V2_SOURCE} )

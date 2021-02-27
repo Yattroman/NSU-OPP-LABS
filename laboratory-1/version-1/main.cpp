@@ -56,8 +56,6 @@ int main(int argc, char* argv[]){
 //        }
 
         ++repeats;
-        printVector(x[0], N);
-
         if( (vectorLength(N, r[1]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k+1)| / |b| < EPSILON
             break;
         }
@@ -67,6 +65,8 @@ int main(int argc, char* argv[]){
 
     printVector(vecU, N);
     printVector(x[1], N);
+
+    printVector(mulMatrixAndVector(N, mA, vecU), N);
 
     std::cout << repeats;
 
