@@ -27,7 +27,7 @@ void printProcRows(double* matrix, int M, int N){
 }
 
 double* subVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = new double[N];
+    double* res = (double*) calloc(N, sizeof(double));
 
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] - vectorR[j];
@@ -37,7 +37,7 @@ double* subVectorAndVector(int N, double* vectorL, double* vectorR){
 }
 
 double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = new double[N];
+    double* res = (double*) calloc(N, sizeof(double));
 
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] + vectorR[j];
@@ -47,7 +47,7 @@ double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
 }
 
 double* mulMatrixAndVector(int M, int N, double* matrix, double* vector){
-    double* res = new double[M];
+    double* res = (double*) calloc(M, sizeof(double));
 
     for(size_t i = 0; i < M; ++i) {
         res[i] = 0;
@@ -82,7 +82,7 @@ double vectorLength(int N, const double* vector){ // Memory OK
 }
 
 double* mulVectorAndScalar(int N, double scalar, double* vector){
-    double* res = new double[N];
+    double* res = (double*) calloc(N, sizeof(double));
 
     for(size_t i = 0; i < N; ++i) {
         for (size_t j = 0; j < N; ++j) {
