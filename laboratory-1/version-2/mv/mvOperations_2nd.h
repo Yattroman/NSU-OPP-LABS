@@ -6,6 +6,7 @@
 #include <cmath>
 
 void printMatrix(double* matrix, int M, int N);
+void printProcRows(double* matrix, int M, int N);
 void printVector(double * vector, int N);
 
 double* mulMatrixAndVector(int M, int N, double* matrix, double* vector);

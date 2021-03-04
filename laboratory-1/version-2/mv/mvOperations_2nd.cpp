@@ -17,6 +17,15 @@ void printVector(double* vector, int N){
     printf("\n");
 }
 
+void printProcRows(double* matrix, int M, int N){
+    for(size_t i = 0; i < M; ++i){
+        for(size_t j = 0; j < N; ++j){
+            std::cout << matrix[i*N + j] << ' ';
+        }
+        std::cout << '\n';
+    }
+}
+
 double* subVectorAndVector(int N, double* vectorL, double* vectorR){
     double* res = new double[N];
 
@@ -38,7 +47,7 @@ double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
 }
 
 double* mulMatrixAndVector(int M, int N, double* matrix, double* vector){
-    double* res = new double[N];
+    double* res = new double[M];
 
     for(size_t i = 0; i < M; ++i) {
         res[i] = 0;

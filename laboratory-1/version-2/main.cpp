@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <iostream>
 #include <unistd.h>
+#include <cstring>
 #include "mv/mvOperations_2nd.h"
 #include "mv/mvInit_2nd.h"
 
@@ -17,19 +18,20 @@ void testPartialResults(double* pProcResult, int procSize, int procRank, int row
     }
 }
 
-void distributeData(double* matrixA, double* vectorX, double* vectorB, double* matrixProcRows, int N, int rowNum, int procSize, int procRank){
+void distributeData(double* vectorX, double* vectorB, int N){
     MPI_Bcast(vectorX, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(vectorB, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+}
 
-    int* displs = new int[procSize];
-    int* scounts = new int[procSize];
-
-    for (size_t i=0; i< procSize; ++i) {
-        displs[i] = i*N*rowNum;
-        scounts[i] = N*rowNum;
+void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int N, int procSize){
+    for (int i = 0; i < procSize; ++i) {
+        displs[i] = N*rowNum*i;
+        recvcounts[i] = rowNum;
+        sendcounts[i] = rowNum;
     }
 
-    MPI_Scatterv(matrixA, scounts, displs, MPI_DOUBLE, matrixProcRows, rowNum*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    sendcounts[0] = rowNum+lastRowAdding;
+    recvcounts[0] = rowNum+lastRowAdding;
 }
 
 int main(int argc, char** argv)
@@ -45,13 +47,14 @@ int main(int argc, char** argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
 
     int rowNum = N/procSize;
-    double* mProcRows = new double[rowNum*N];
+    int lastRowAdding = N%procSize;
 
-    double* mA;
+    double* mProcRows;
+    double* vecBPart;
 
     double* vecU = new double[N];
     double* x0 = new double[N];
-    double* vecB = new double[N];
+    double* vecB = new double[N+N];
     double* r0; // r0 = b - Ax0, где x0 - нулевой вектор
     double* z0; // z0 = r0
 
@@ -61,30 +64,55 @@ int main(int argc, char** argv)
     double alpha[] = {0, 0};
     double beta[] = {0, 0};
 
+    int* displs = new int[procSize];
+    int* recvcounts = new int[procSize];
+    int* sendcounts = new int[procSize];
+
+    initVectorU(N, vecU);
+
+    fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, N, procSize);
+
     if(procRank == 0){
-        mA = new double[N*N];
+        mProcRows = new double[(rowNum+lastRowAdding)*N];
+        vecBPart = new double[rowNum+lastRowAdding];
 
         initVectorX(N, x0);
-        initMatrixA(N, mA);
-        initVectorU(N, vecU);
-        initVectorB(N, mA, vecU, vecB);
-        r0 = vecB; // r0 = b - Ax0, где x0 - нулевой вектор
-        z0 = vecB; // z0 = r0
+
+        initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
+        vecBPart = mulMatrixAndVector(rowNum+lastRowAdding, N, mProcRows, vecU);
+
+        printVector(vecBPart, rowNum+lastRowAdding);
+    } else {
+        mProcRows = new double[rowNum*N];
+        vecBPart = new double[rowNum];
+
+        initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
+        vecBPart = mulMatrixAndVector(rowNum, N, mProcRows, vecU);
+        printVector(vecBPart, rowNum);
     }
 
-    distributeData(mA, x0, vecB, mProcRows, N, rowNum, procSize, procRank);
+    MPI_Gatherv(vecBPart, sendcounts[procRank], MPI_DOUBLE, vecB, recvcounts, displs, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    //std::cout << "test\n" << procRank;
-    //printVector(vecB, N);
-    //printVector(x0, N);
+    //initVectorBPart()
 
-    testPartialResults(mulMatrixAndVector(rowNum, N, mA, x0), procSize, procRank, rowNum);
-    MPI_Barrier(MPI_COMM_WORLD);
+    //distributeData(x0, vecB, N);
 
-    /* while (1){
+    //r0 = vecB; // r0 = b - Ax0, где x0 - нулевой вектор
+    //memcpy(z0, r0, N); // z0 = r0
+
+    //testPartialResults(mulMatrixAndVector(rowNum, N, mA, vecB), procSize, procRank, rowNum);
+
+    //printProcRows(mProcRows, rowNum, N);
+    if(procRank == 0){
+        printVector(vecB, N);
+    }
+
+    /*
+
+    while (1){
         double* temp[] = {NULL, NULL, NULL, NULL};
 
-        temp[0] = mulMatrixAndVector(rowNum, N, mA, z[0]);                      // Az(k)
+        temp[0] = mulMatrixAndVector(rowNum, N, mProcRows, z[0]);                      // Az(k)
         alpha[1] = scalarVectorAndVector(N, r[0], r[0])
                    / scalarVectorAndVector(N, temp[0], z[0]);      // alpha(k+1) = (r(k), r(k)) / (Az(k), z(k))
 
@@ -105,6 +133,7 @@ int main(int argc, char** argv)
 
         delete[] x[0];
         delete[] z[0];
+        delete[] r[0];
 
         x[0] = x[1];
         z[0] = z[1];
@@ -119,15 +148,15 @@ int main(int argc, char** argv)
             break;
         }
     }
-     */
 
 //    printVector(vecU, N);
 //    printVector(x[1], N);
 
     if(procRank == 0){
-        delete[] mA;
         delete[] vecU;
     }
+
+     */
 
     MPI_Finalize();
 
