@@ -3,8 +3,7 @@
 
 void initVectorU(int N, double* vectorU){
     for(size_t i = 0; i < N; ++i){
-        //vectorU[i] = sin(2*M_PI*(i+1)/N );
-        vectorU[i] = 1;
+        vectorU[i] = sin(2*M_PI*(i+1)/N );
     }
 }
 
