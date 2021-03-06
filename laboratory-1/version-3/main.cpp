@@ -58,32 +58,27 @@ int main(int argc, char** argv)
 
     fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, N, procSize);
 
-    if(procRank == 0){
-        mProcRows = (double*) calloc((rowNum+lastRowAdding)*N, sizeof(double));
-        vecBPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
-        vecXPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
-
-        initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
-        vecBPart = mulMatrixAndVector(rowNum+lastRowAdding, N, mProcRows, vecU);
-    } else {
-        mProcRows = (double*) calloc(rowNum*N, sizeof(double));
-        vecBPart = (double*) calloc(rowNum, sizeof(double));
-        vecXPart = (double*) calloc(rowNum, sizeof(double));
-
-        initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
-        vecBPart = mulMatrixAndVector(rowNum, N, mProcRows, vecU);
-    }
-
-    distributeData();
-
-                  // r0 = b - Ax0, где x0 - нулевой вектор
-                   // z0 = r0
-
     int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
+
+    mProcRows = (double*) calloc(rowNumMod*N, sizeof(double));
+    vecBPart = (double*) calloc(rowNumMod, sizeof(double));
+    vecXPart = (double*) calloc(rowNumMod, sizeof(double));
+
+    initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
+    vecBPart = mulMatrixAndVector(rowNumMod, N, mProcRows, vecU); // init vector B part
+
+    rPart[0] = (double*) calloc(rowNum, sizeof(double));
+    xPart[0] = (double*) calloc(rowNum, sizeof(double));
+    zPart[0] = (double*) calloc(rowNum, sizeof(double));
+
+    std::memcpy(rPart[0], vecBPart, N*rowNumMod); // r0 = b - Ax0, где x0 - нулевой вектор
+    std::memcpy(zPart[0], rPart[0], N*rowNumMod);  // z0 = r0
 
     while (1){
         double* temp[] = {NULL, NULL, NULL, NULL};
 
+        //temp[0] =
+        //alpha[1] =
     }
 
     MPI_Finalize();

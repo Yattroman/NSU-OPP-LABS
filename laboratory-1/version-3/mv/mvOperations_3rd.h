@@ -13,7 +13,7 @@ double* mulMatrixAndVector(int M, int N, double* matrix, double* vector);
 
 double* subVectorAndVector(int N, double* vectorL, double* vectorR);
 double* sumVectorAndVector(int N, double* vectorL, double* vectorR);
-double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR);
+double scalarVectorAndVector(int rowNumMod, const double* vectorL, const double* vectorR);
 
 double vectorLength(int N, const double* vector);
 

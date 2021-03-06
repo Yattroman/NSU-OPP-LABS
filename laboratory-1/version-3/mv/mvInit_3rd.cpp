@@ -8,14 +8,6 @@ void initVectorU(int N, double* vectorU){
     }
 }
 
-void initVectorX(int N, double* vectorX){
-
-    for (int i = 0; i < N; ++i) {
-        vectorX[i] = 0;
-    }
-
-}
-
 void initMatrixProcRows(int M, int N, double* matrixProcRows, int procRank, int lastRowAdding){
     if(procRank == 0)
         M += lastRowAdding;
