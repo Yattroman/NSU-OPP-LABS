@@ -81,8 +81,8 @@ int main(int argc, char** argv)
 
     distributeData(x0, vecB, sendcounts, recvcounts, displs, procRank, vecBPart, N);
 
-    std::memcpy(r0, vecB, N*sizeof(double) );              // r0 = b - Ax0, где x0 - нулевой вектор
-    std::memcpy(z0, r0, N*sizeof(double));                // z0 = r0
+    std::memcpy( r0, vecB, N*sizeof(double) );              // r0 = b - Ax0, где x0 - нулевой вектор
+    std::memcpy( z0, r0, N*sizeof(double) );                // z0 = r0
 
     int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
 
@@ -90,6 +90,11 @@ int main(int argc, char** argv)
         double* temp[] = {NULL, NULL, NULL, NULL};
 
         temp[0] = mulMatrixAndVector(rowNumMod, N, mProcRows, z[0]);                      // Az(k)
+        /*
+        std::cout << "!\nProc rank: " << procRank << ", RowNumMod: " << rowNumMod << ", Repeats " << repeats <<"\n";
+        printVector(temp[0], rowNumMod);
+        std::cout << "!\n";
+         */
         MPI_Allgatherv(temp[0], sendcounts[procRank], MPI_DOUBLE, Azk, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 
         alpha[1] = scalarVectorAndVector(N, r[0], r[0])
@@ -110,28 +115,33 @@ int main(int argc, char** argv)
         alpha[0] = alpha[1];
         beta[0] = beta[1];
 
-        free(x[0]);
-        free(z[0]);
-        free(r[0]);
-
         for (size_t ui = 0; ui < 4; ++ui) {
             free(temp[ui]);
         }
 
-        ++repeats;
+        if(procRank == 0){
+            repeats++;
+        }
 
-        if( (vectorLength(N, r[1]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k+1)| / |b| < EPSILON
+        if( (vectorLength(N, r[0]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k+1)| / |b| < EPSILON
+            free(x[0]);
+            free(z[0]);
+            free(r[0]);
             break;
         }
 
+        free(x[0]);
+        free(z[0]);
+        free(r[0]);
         x[0] = x[1];
         z[0] = z[1];
         r[0] = r[1];
+
     }
 
     if(procRank == 0){
-        printVector(vecU, N);
-        printVector(x[1], N);
+        printVector(vecU, N, procRank);
+        printVector(x[1], N, procRank);
 
         std::cout << "Repeats in total: " << repeats << "\n";
     }

@@ -10,7 +10,8 @@ void printMatrix(double* matrix, int M, int N){
     }
 }
 
-void printVector(double* vector, int N){
+void printVector(double* vector, int N, int procRank){
+    printf("proc rank: %d. ", procRank);
     for(size_t i = 0; i < N; ++i){
         printf("%f ", vector[i]);
     }
