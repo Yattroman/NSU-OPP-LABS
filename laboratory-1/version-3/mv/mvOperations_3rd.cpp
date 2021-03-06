@@ -61,28 +61,19 @@ double* mulMatrixAndVector(int M, int N, double* matrix, double* vector){
     return res;
 }
 
-double scalarVectorAndVector(int rowNumMod, const double* vectorL, const double* vectorR){ // Memory OK
-    // res = c1 + c2 + c3 + ...
+double scalarVectorAndVector(int rowNumMod, const double* vectorL, const double* vectorR){
+    // res = tempRes1 + tempRes2 + tempRes3 + ... + tempRes(procRank) [between processes]
     double res = 0;
 
-    // temp1 = a1*b1=c1 | a2*b2=c2 | a3*b3=c3 | ...
-    double* temp1 = (double*) calloc(rowNumMod, sizeof(double));
+    // temp1 = a1*b1 + a2*b2 + a3*b3 + ...+ a(rowNumMod)*b(rowNumMod) [between vectorL and vector R]
+    double tempRes = 0;
 
-    // temp2 = с1 | с2 | с3 | ...
-    double* temp2 = (double*) calloc(rowNumMod, sizeof(double));
-
-    for(size_t i = 0; i < rowNumMod; ++i) {
-        temp1[i] += vectorL[i] * vectorR[i];
+    for (int i = 0; i < rowNumMod; ++i) {
+        tempRes += vectorL[i] * vectorR[i];
     }
 
-    MPI_Reduce(temp1, temp2, rowNumMod, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-    for(size_t i = 0; i < rowNumMod; ++i) {
-        res += temp1[i] * temp2[i];
-    }
-
-    MPI_Reduce(temp1, temp2, rowNumMod, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
+    MPI_Reduce(&tempRes, &res, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    // MPI_Reduce_scatter(&tempRes, &res, rowNumMod, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
     return res;
 }
