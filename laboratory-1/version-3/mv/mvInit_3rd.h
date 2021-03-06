@@ -4,9 +4,8 @@
 #include <cstdlib>
 #include <cmath>
 
-double* initMatrixA(int N);
-double* initVectorU(int N);
-double* initVectorB(int N, double* mA, double* vU);
-double* initVectorX(int N);
+void initVectorU(int N, double* vectorU);
+void initVectorX(int N, double* vectorX);
+void initMatrixProcRows(int M, int N, double* matrixProcRows, int procRank, int lastRowAdding);
 
 #endif //OPP_NSU_LABS_MVINIT_H

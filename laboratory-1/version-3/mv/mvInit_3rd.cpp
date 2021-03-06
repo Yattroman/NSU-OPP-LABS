@@ -1,49 +1,33 @@
 #include <cstring>
-#include "mvInit_3rd.h"
+#include "mvInit_2nd.h"
 
-double* initMatrixA(int N){
-    double* mA = new double[N*N];
-
+void initVectorU(int N, double* vectorU){
     for(size_t i = 0; i < N; ++i){
+        vectorU[i] = sin(2*M_PI*(i+1)/N );
+        //vectorU[i] = 1;
+    }
+}
+
+void initVectorX(int N, double* vectorX){
+
+    for (int i = 0; i < N; ++i) {
+        vectorX[i] = 0;
+    }
+
+}
+
+void initMatrixProcRows(int M, int N, double* matrixProcRows, int procRank, int lastRowAdding){
+    if(procRank == 0)
+        M += lastRowAdding;
+
+    for(size_t i = 0; i < M; ++i){
         for(size_t j = 0; j < N; ++j){
-            if(i == j) {
-                mA[i*N + j] = 300.0;
+            matrixProcRows[N*i + j] = 1;
+            if(procRank == 0){
+                matrixProcRows[N*i] = 2;
             } else {
-                mA[i*N + j] = 1.0;
+                matrixProcRows[i+lastRowAdding+procRank] = 2;
             }
         }
     }
-
-    return mA;
-}
-
-double* initVectorU(int N){
-    double* vecU = new double[N];
-
-    for(size_t i = 0; i < N; ++i){
-        vecU[i] = sin(2*M_PI*(i+1)/N );
-    }
-
-    return vecU;
-}
-
-double* initVectorB(int N, double* mA, double* vecU){
-    double* vecB = new double[N];
-    memset(vecB, 0, N);
-
-    for(size_t i = 0; i < N; ++i){
-        for(size_t j = 0; j < N; ++j){
-            vecB[j] += mA[j + i*N] * vecU[j];
-        }
-    }
-
-    //delete[] vecU;
-    return vecB;
-}
-
-double* initVectorX(int N){
-    double* vecX = new double[N];
-    memset(vecX, 0, N);
-
-    return vecX;
 }

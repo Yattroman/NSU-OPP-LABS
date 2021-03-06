@@ -1,14 +1,15 @@
-#ifndef OPP_NSU_LABS_MVOPERATIONS_H
-#define OPP_NSU_LABS_MVOPERATIONS_H
+#ifndef OPP_NSU_LABS_MVOPERATIONS_3RD_H
+#define OPP_NSU_LABS_MVOPERATIONS_3RD_H
 
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
 
-void printMatrix(double* matrix, int N);
-void printVector(double * vector, int N);
+void printMatrix(double* matrix, int M, int N);
+void printProcRows(double* matrix, int M, int N);
+void printVector(double * vector, int N, int procRank);
 
-double* mulMatrixAndVector(int N, double* matrix, double* vector);
+double* mulMatrixAndVector(int M, int N, double* matrix, double* vector);
 
 double* subVectorAndVector(int N, double* vectorL, double* vectorR);
 double* sumVectorAndVector(int N, double* vectorL, double* vectorR);
