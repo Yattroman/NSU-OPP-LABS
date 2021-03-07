@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
     vecBPart = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, vecU, recvcounts); // init vector B part
 
-    printVector(vecBPart, rowNumMod, procRank);
+    //printVector(vecBPart, rowNumMod, procRank);
 
     rPart[0] = (double*) calloc(rowNum, sizeof(double));
     xPart[0] = (double*) calloc(rowNum, sizeof(double));
@@ -78,13 +78,54 @@ int main(int argc, char** argv)
 
     //std::cout << scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
 
-    /*while (1){
+    while (1){
         double* temp[] = {NULL, NULL, NULL, NULL};
 
-        //temp[0] = mulMatrixAndVector(rowNumMod, mProcRows, zPart[0])
-        //alpha[1] = scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]) /
-                                            scalarVectorAndVector(rowNumMod, temp[0], zPart[0]);
-    }*/
+        temp[0] = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, zPart[0], recvcounts);
+        alpha[1] = scalarVectorAndVector(rowNumMod, rPart[0], rPart[0])
+                    / scalarVectorAndVector(rowNumMod, temp[0], zPart[0]);
+
+        temp[1] = mulVectorAndScalar(rowNumMod, alpha[1], zPart[0]);
+        xPart[1] = sumVectorAndVector(rowNumMod, xPart[0], temp[1]);
+
+        temp[2] = mulVectorAndScalar(rowNumMod, alpha[1], temp[0]);
+        rPart[1] = subVectorAndVector(rowNumMod, rPart[0], temp[2]);
+
+        beta[1] = scalarVectorAndVector(rowNumMod, rPart[1], rPart[1])
+                    / scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
+
+        temp[3] = mulVectorAndScalar(rowNumMod, beta[1], zPart[0]);
+        zPart[1] = sumVectorAndVector(rowNumMod, rPart[1], temp[3]);
+
+        for (int ui = 0; ui < 4; ++ui) {
+            free(temp[ui]);
+        }
+
+        if(procRank == 0){
+            repeats++;
+        }
+
+        if( (vectorLength(rowNumMod, rPart[0]) / vectorLength(rowNumMod, vecBPart) ) < EPSILON){    // |r(k+1)| / |b| < EPSILON
+            free(xPart[0]);
+            free(zPart[0]);
+            free(rPart[0]);
+            break;
+        }
+
+        free(xPart[0]);
+        free(zPart[0]);
+        free(rPart[0]);
+        xPart[0] = xPart[1];
+        zPart[0] = zPart[1];
+        rPart[0] = rPart[1];
+    }
+
+    if(procRank == 0){
+        printVector(vecU, N, procRank);
+
+        std::cout << "Repeats in total: " << repeats << "\n";
+    }
+    printVector(xPart[1], N, procRank);
 
     MPI_Finalize();
 

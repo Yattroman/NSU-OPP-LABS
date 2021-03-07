@@ -39,7 +39,7 @@ double* sumVectorAndVector(int rowNumMod, const double* vectorLPart, const doubl
     return res;
 }
 
-double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts){
+double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts){ // OK.
     double* res = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
 
     double temp[N];
@@ -49,10 +49,6 @@ double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, 
             temp[j] += matrixPart[i*N+j]*vectorPart[i];
         }
     }
-
-/*    int procRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
-    printVector(temp, N, procRank);*/
 
     MPI_Reduce_scatter(temp, res, recvcounts, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
@@ -80,11 +76,11 @@ double vectorLength(int rowNumMod, const double* vectorPart){ // OK.
     return res;
 }
 
-double* mulVectorAndScalar(int rowNumMod, double scalar, const double* vector){
+double* mulVectorAndScalar(int rowNumMod, double scalar, const double* vectorPart){
     double* res = (double*) calloc(rowNumMod, sizeof(double));
 
     for(size_t i = 0; i < rowNumMod; ++i) {
-        res[i] = scalar * vector[i];
+        res[i] = scalar * vectorPart[i];
     }
 
     return res;

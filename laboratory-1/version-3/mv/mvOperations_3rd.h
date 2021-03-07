@@ -16,6 +16,6 @@ double scalarVectorAndVector(int rowNumMod, const double* vectorLPart, const dou
 
 double vectorLength(int rowNumMod, const double* vectorPart);
 
-double* mulVectorAndScalar(int N, double scalar, double* vector);
+double* mulVectorAndScalar(int N, double scalar, const double* vector);
 
 #endif
