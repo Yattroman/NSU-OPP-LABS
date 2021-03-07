@@ -39,8 +39,8 @@ double* sumVectorAndVector(int rowNumMod, const double* vectorLPart, const doubl
     return res;
 }
 
-double* mulMatrixAndVector(int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts){
-    double* res = (double*) calloc(rowNumMod, sizeof(double));
+double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts){
+    double* res = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
 
     double temp[N];
 

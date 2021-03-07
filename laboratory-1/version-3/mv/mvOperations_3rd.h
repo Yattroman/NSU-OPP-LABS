@@ -8,7 +8,7 @@
 void printProcRows(double* matrix, int M, int N);
 void printVector(double * vector, int N, int procRank);
 
-double* mulMatrixAndVector(int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts);
+double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts);
 
 double* subVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart);
 double* sumVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart);

@@ -15,11 +15,11 @@ void initMatrixProcRows(int M, int N, double* matrixProcRows, int procRank, int 
     for(size_t i = 0; i < M; ++i){
         for(size_t j = 0; j < N; ++j){
             matrixProcRows[N*i + j] = 1;
-            if(procRank == 0){
+            /*if(procRank == 0){
                 matrixProcRows[N*i] = 2;
             } else {
                 matrixProcRows[i+lastRowAdding+procRank] = 2;
-            }
+            }*/
         }
     }
 }

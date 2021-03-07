@@ -9,15 +9,17 @@
 
 void distributeData(){ }
 
-void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
+void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* recvcountsRS, int* sendcounts, int rowNum, int lastRowAdding, int N, int procSize){
     for (int i = 1; i < procSize; ++i) {
         displs[i] = (i+lastRowAdding)*rowNum;
         recvcounts[i] = rowNum;
         sendcounts[i] = rowNum;
+        recvcountsRS[i] = rowNum*sizeof(double);
     }
     displs[0] = 0;
     sendcounts[0] = rowNum+lastRowAdding;
     recvcounts[0] = rowNum+lastRowAdding;
+    recvcountsRS[0] = (rowNum+lastRowAdding)*sizeof(double);
 }
 
 int main(int argc, char** argv)
@@ -50,11 +52,12 @@ int main(int argc, char** argv)
 
     int* displs = (int*) calloc(procSize, sizeof(int));
     int* recvcounts = (int*) calloc(procSize, sizeof(int));
+    int* recvcountsRS = (int*) calloc(procSize, sizeof(int));
     int* sendcounts = (int*) calloc(procSize, sizeof(int));
 
     initVectorU(N, vecU);
 
-    fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, procSize);
+    fillDisplsAndRecvcountsTables(displs, recvcounts, recvcountsRS, sendcounts, rowNum, lastRowAdding, N, procSize);
 
     int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
 
@@ -63,7 +66,7 @@ int main(int argc, char** argv)
     vecXPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
 
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
-    vecBPart = mulMatrixAndVector(rowNumMod, N, mProcRows, vecU, recvcounts); // init vector B part
+    vecBPart = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, vecU, recvcounts); // init vector B part
 
     printVector(vecBPart, rowNumMod, procRank);
 
