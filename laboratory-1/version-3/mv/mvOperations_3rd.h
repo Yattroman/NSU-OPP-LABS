@@ -5,8 +5,8 @@
 #include <iostream>
 #include <cmath>
 
-void printProcRows(double* matrix, int M, int N);
-void printVector(double * vector, int N, int procRank);
+void printProcRows(const double* matrix, int M, int N);
+void printVector(const double * vector, int N, int procRank);
 
 double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts);
 

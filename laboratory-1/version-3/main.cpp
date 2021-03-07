@@ -9,17 +9,15 @@
 
 void distributeData(){ }
 
-void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* recvcountsRS, int* sendcounts, int rowNum, int lastRowAdding, int N, int procSize){
+void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
         displs[i] = (i+lastRowAdding)*rowNum;
         recvcounts[i] = rowNum;
         sendcounts[i] = rowNum;
-        recvcountsRS[i] = rowNum*sizeof(double);
     }
     displs[0] = 0;
     sendcounts[0] = rowNum+lastRowAdding;
     recvcounts[0] = rowNum+lastRowAdding;
-    recvcountsRS[0] = (rowNum+lastRowAdding)*sizeof(double);
 }
 
 int main(int argc, char** argv)
@@ -52,12 +50,11 @@ int main(int argc, char** argv)
 
     int* displs = (int*) calloc(procSize, sizeof(int));
     int* recvcounts = (int*) calloc(procSize, sizeof(int));
-    int* recvcountsRS = (int*) calloc(procSize, sizeof(int));
     int* sendcounts = (int*) calloc(procSize, sizeof(int));
 
     initVectorU(N, vecU);
 
-    fillDisplsAndRecvcountsTables(displs, recvcounts, recvcountsRS, sendcounts, rowNum, lastRowAdding, N, procSize);
+    fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, procSize);
 
     int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
 
@@ -68,7 +65,7 @@ int main(int argc, char** argv)
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
     vecBPart = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, vecU, recvcounts); // init vector B part
 
-    printVector(vecBPart, rowNumMod, procRank);
+    //printVector(vecBPart, rowNumMod, procRank);
 
     rPart[0] = (double*) calloc(rowNum, sizeof(double));
     xPart[0] = (double*) calloc(rowNum, sizeof(double));
@@ -76,6 +73,8 @@ int main(int argc, char** argv)
 
     std::memcpy(rPart[0], vecBPart, sizeof(double)*rowNumMod); // r0 = b - Ax0, где x0 - нулевой вектор
     std::memcpy(zPart[0], rPart[0], sizeof(double)*rowNumMod);  // z0 = r0
+
+    printProcRows(mProcRows, rowNumMod, N);
 
     //std::cout << scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
 

@@ -2,7 +2,7 @@
 #include <mpi.h>
 #include "mvOperations_3rd.h"
 
-void printVector(double* vector, int N, int procRank){
+void printVector(const double* vector, int N, int procRank){
     printf("proc rank: %d. ", procRank);
     for(size_t i = 0; i < N; ++i){
         printf("%f ", vector[i]);
@@ -10,7 +10,7 @@ void printVector(double* vector, int N, int procRank){
     printf("\n");
 }
 
-void printProcRows(double* matrix, int M, int N){
+void printProcRows(const double* matrix, int M, int N){
     for(size_t i = 0; i < M; ++i){
         for(size_t j = 0; j < N; ++j){
             std::cout << matrix[i*N + j] << ' ';
@@ -46,9 +46,13 @@ double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, 
 
     for (int i = 0; i < rowNumMod; ++i) {
         for (int j = 0; j < N; ++j) {
-            temp[j] += matrixPart[i*rowNumMod + j]*vectorPart[i];
+            temp[j] += matrixPart[i*rowNumMod+j]*vectorPart[i];
         }
     }
+
+    /*int procRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
+    printVector(temp, N, procRank);*/
 
     MPI_Reduce_scatter(temp, res, recvcounts, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
