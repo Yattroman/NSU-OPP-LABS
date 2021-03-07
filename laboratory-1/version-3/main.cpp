@@ -9,7 +9,7 @@
 
 void distributeData(){ }
 
-void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int N, int procSize){
+void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
         displs[i] = (i+lastRowAdding)*rowNum;
         recvcounts[i] = rowNum;
@@ -41,8 +41,6 @@ int main(int argc, char** argv)
 
     double* vecU = (double*) calloc(N, sizeof(double));
 
-    double* Azk = (double*) calloc(N, sizeof(double));
-
     double* rPart[] = {NULL, NULL};
     double* zPart[] = {NULL, NULL};
     double* xPart[] = {NULL, NULL};
@@ -56,7 +54,7 @@ int main(int argc, char** argv)
 
     initVectorU(N, vecU);
 
-    fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, N, procSize);
+    fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, procSize);
 
     int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
 
@@ -65,24 +63,25 @@ int main(int argc, char** argv)
     vecXPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
 
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
-    vecBPart = mulMatrixAndVector(rowNumMod, N, mProcRows, vecU); // init vector B part
+    vecBPart = mulMatrixAndVector(rowNumMod, N, mProcRows, vecU, recvcounts); // init vector B part
+
+    printVector(vecBPart, rowNumMod, procRank);
 
     rPart[0] = (double*) calloc(rowNum, sizeof(double));
     xPart[0] = (double*) calloc(rowNum, sizeof(double));
     zPart[0] = (double*) calloc(rowNum, sizeof(double));
 
-    //std::memcpy(rPart[0], vecBPart, N*rowNumMod); // r0 = b - Ax0, где x0 - нулевой вектор
-    //std::memcpy(zPart[0], rPart[0], N*rowNumMod);  // z0 = r0
+    std::memcpy(rPart[0], vecBPart, sizeof(double)*rowNumMod); // r0 = b - Ax0, где x0 - нулевой вектор
+    std::memcpy(zPart[0], rPart[0], sizeof(double)*rowNumMod);  // z0 = r0
 
-    std::cout << scalarVectorAndVector(rowNumMod, vecBPart, vecBPart);
-
-
+    //std::cout << scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
 
     /*while (1){
         double* temp[] = {NULL, NULL, NULL, NULL};
 
-        //temp[0] =
-        //alpha[1] =
+        //temp[0] = mulMatrixAndVector(rowNumMod, mProcRows, zPart[0])
+        //alpha[1] = scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]) /
+                                            scalarVectorAndVector(rowNumMod, temp[0], zPart[0]);
     }*/
 
     MPI_Finalize();

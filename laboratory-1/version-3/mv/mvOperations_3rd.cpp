@@ -2,15 +2,6 @@
 #include <mpi.h>
 #include "mvOperations_3rd.h"
 
-void printMatrix(double* matrix, int M, int N){
-    for(size_t i = 0; i < M; ++i){
-        for(size_t j = 0; j < N; ++j){
-            printf("%f ", matrix[i*N + j]);
-        }
-        printf("\n");
-    }
-}
-
 void printVector(double* vector, int N, int procRank){
     printf("proc rank: %d. ", procRank);
     for(size_t i = 0; i < N; ++i){
@@ -28,75 +19,68 @@ void printProcRows(double* matrix, int M, int N){
     }
 }
 
-double* subVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = (double*) calloc(N, sizeof(double));
+double* subVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart){
+    double* res = (double*) calloc(rowNumMod, sizeof(double));
 
-    for(size_t j = 0; j < N; ++j){
-        res[j] = vectorL[j] - vectorR[j];
+    for(size_t j = 0; j < rowNumMod; ++j){
+        res[j] = vectorLPart[j] - vectorRPart[j];
     }
 
     return res;
 }
 
-double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = (double*) calloc(N, sizeof(double));
+double* sumVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart){
+    double* res = (double*) calloc(rowNumMod, sizeof(double));
 
-    for(size_t j = 0; j < N; ++j){
-        res[j] = vectorL[j] + vectorR[j];
+    for(size_t j = 0; j < rowNumMod; ++j){
+        res[j] = vectorLPart[j] + vectorRPart[j];
     }
 
     return res;
 }
 
-double* mulMatrixAndVector(int M, int N, double* matrix, double* vector){
-    double* res = (double*) calloc(M, sizeof(double));
+double* mulMatrixAndVector(int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts){
+    double* res = (double*) calloc(rowNumMod, sizeof(double));
 
-    for(size_t i = 0; i < M; ++i) {
-        res[i] = 0;
-        for (size_t j = 0; j < N; ++j) {
-            res[i] += matrix[i*N + j] * vector[j];
+    double temp[N];
+
+    for (int i = 0; i < rowNumMod; ++i) {
+        for (int j = 0; j < N; ++j) {
+            temp[j] += matrixPart[i*rowNumMod + j]*vectorPart[i];
         }
     }
 
+    MPI_Reduce_scatter(temp, res, recvcounts, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
     return res;
 }
 
-double scalarVectorAndVector(int rowNumMod, const double* vectorL, const double* vectorR){
+double scalarVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart) { // OK.
     // res = tempRes1 + tempRes2 + tempRes3 + ... + tempRes(procRank) [between processes]
     double res = 0;
 
-    // temp1 = a1*b1 + a2*b2 + a3*b3 + ...+ a(rowNumMod)*b(rowNumMod) [between vectorL and vector R]
+    // tempRes = a1*b1 + a2*b2 + a3*b3 + ...+ a(rowNumMod)*b(rowNumMod) [between vectorL and vector R]
     double tempRes = 0;
 
     for (int i = 0; i < rowNumMod; ++i) {
-        tempRes += vectorL[i] * vectorR[i];
+        tempRes += vectorLPart[i] * vectorRPart[i];
     }
 
-    MPI_Reduce(&tempRes, &res, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-    // MPI_Reduce_scatter(&tempRes, &res, rowNumMod, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Allreduce(&tempRes, &res, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     return res;
 }
 
-double vectorLength(int N, const double* vector){ // Memory OK
-    double res = 0;
-
-    for(size_t i = 0; i < N; ++i) {
-        res += vector[i] * vector[i];
-    }
-
-    res = sqrt(res);
-
+double vectorLength(int rowNumMod, const double* vectorPart){ // OK.
+    double res = sqrt(scalarVectorAndVector(rowNumMod, vectorPart, vectorPart));
     return res;
 }
 
-double* mulVectorAndScalar(int N, double scalar, double* vector){
-    double* res = (double*) calloc(N, sizeof(double));
+double* mulVectorAndScalar(int rowNumMod, double scalar, const double* vector){
+    double* res = (double*) calloc(rowNumMod, sizeof(double));
 
-    for(size_t i = 0; i < N; ++i) {
-        for (size_t j = 0; j < N; ++j) {
-            res[j] = scalar * vector[j];
-        }
+    for(size_t i = 0; i < rowNumMod; ++i) {
+        res[i] = scalar * vector[i];
     }
 
     return res;
