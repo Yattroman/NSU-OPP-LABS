@@ -46,11 +46,11 @@ double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, 
 
     for (int i = 0; i < rowNumMod; ++i) {
         for (int j = 0; j < N; ++j) {
-            temp[j] += matrixPart[i*rowNumMod+j]*vectorPart[i];
+            temp[j] += matrixPart[i*N+j]*vectorPart[i];
         }
     }
 
-    /*int procRank;
+/*    int procRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
     printVector(temp, N, procRank);*/
 

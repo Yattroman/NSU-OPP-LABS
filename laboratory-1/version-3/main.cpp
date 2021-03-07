@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
     vecBPart = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, vecU, recvcounts); // init vector B part
 
-    //printVector(vecBPart, rowNumMod, procRank);
+    printVector(vecBPart, rowNumMod, procRank);
 
     rPart[0] = (double*) calloc(rowNum, sizeof(double));
     xPart[0] = (double*) calloc(rowNum, sizeof(double));
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
     std::memcpy(rPart[0], vecBPart, sizeof(double)*rowNumMod); // r0 = b - Ax0, где x0 - нулевой вектор
     std::memcpy(zPart[0], rPart[0], sizeof(double)*rowNumMod);  // z0 = r0
 
-    printProcRows(mProcRows, rowNumMod, N);
+    //printProcRows(mProcRows, rowNumMod, N);
 
     //std::cout << scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
 
