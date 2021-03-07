@@ -39,6 +39,8 @@ int main(int argc, char** argv)
     double* vecBPart;
     double* vecXPart;
 
+    double* vecXRes;
+
     double* vecU = (double*) calloc(N, sizeof(double));
 
     double* rPart[] = {NULL, NULL};
@@ -61,6 +63,8 @@ int main(int argc, char** argv)
     mProcRows = (double*) calloc(rowNumMod*N, sizeof(double));
     vecBPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
     vecXPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
+
+    vecXRes = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
 
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
     vecBPart = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, vecU, recvcounts); // init vector B part
@@ -106,9 +110,6 @@ int main(int argc, char** argv)
         }
 
         if( (vectorLength(rowNumMod, rPart[0]) / vectorLength(rowNumMod, vecBPart) ) < EPSILON){    // |r(k+1)| / |b| < EPSILON
-            free(xPart[0]);
-            free(zPart[0]);
-            free(rPart[0]);
             break;
         }
 
@@ -120,12 +121,14 @@ int main(int argc, char** argv)
         rPart[0] = rPart[1];
     }
 
+    MPI_Allgatherv(xPart[0], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+
     if(procRank == 0){
         printVector(vecU, N, procRank);
+        printVector(vecXRes, N, procRank);
 
         std::cout << "Repeats in total: " << repeats << "\n";
     }
-    printVector(xPart[1], N, procRank);
 
     MPI_Finalize();
 
