@@ -58,15 +58,15 @@ int main(int argc, char* argv[]){
         alpha[0] = alpha[1];
         beta[0] = beta[1];
 
+        if( (vectorLength(N, r[0]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k)| / |b| < EPSILON
+            break;
+        }
+
         std::memcpy(x[0], x[1], N*sizeof(double));
         std::memcpy(r[0], r[1], N*sizeof(double));
         std::memcpy(z[0], z[1], N*sizeof(double));
 
         ++repeats;
-
-        if( (vectorLength(N, r[0]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k)| / |b| < EPSILON
-            break;
-        }
     }
 
     printVector(vecU, N);
