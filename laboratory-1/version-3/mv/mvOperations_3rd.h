@@ -8,14 +8,14 @@
 void printProcRows(const double* matrix, int M, int N);
 void printVector(const double * vector, int N, int procRank);
 
-double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts);
+void mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts, double * res);
 
-double* subVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart);
-double* sumVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart);
+void subVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart, double * res);
+void sumVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart, double * res);
 double scalarVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart);
 
 double vectorLength(int rowNumMod, const double* vectorPart);
 
-double* mulVectorAndScalar(int N, double scalar, const double* vector);
+void mulVectorAndScalar(int N, double scalar, const double* vector, double * res);
 
 #endif

@@ -19,29 +19,19 @@ void printProcRows(const double* matrix, int M, int N){
     }
 }
 
-double* subVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart){
-    double* res = (double*) calloc(rowNumMod, sizeof(double));
-
+void subVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart, double * res){
     for(size_t j = 0; j < rowNumMod; ++j){
         res[j] = vectorLPart[j] - vectorRPart[j];
     }
-
-    return res;
 }
 
-double* sumVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart){
-    double* res = (double*) calloc(rowNumMod, sizeof(double));
-
+void sumVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart, double * res){
     for(size_t j = 0; j < rowNumMod; ++j){
         res[j] = vectorLPart[j] + vectorRPart[j];
     }
-
-    return res;
 }
 
-double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts){ // OK.
-    double* res = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
-
+void mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts, double * res){ // OK.
     double temp[N];
 
     for (int i = 0; i < rowNumMod; ++i) {
@@ -51,8 +41,6 @@ double* mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, 
     }
 
     MPI_Reduce_scatter(temp, res, recvcounts, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-    return res;
 }
 
 double scalarVectorAndVector(int rowNumMod, const double* vectorLPart, const double* vectorRPart) { // OK.
@@ -76,12 +64,8 @@ double vectorLength(int rowNumMod, const double* vectorPart){ // OK.
     return res;
 }
 
-double* mulVectorAndScalar(int rowNumMod, double scalar, const double* vectorPart){
-    double* res = (double*) calloc(rowNumMod, sizeof(double));
-
+void mulVectorAndScalar(int rowNumMod, double scalar, const double* vectorPart, double * res){
     for(size_t i = 0; i < rowNumMod; ++i) {
         res[i] = scalar * vectorPart[i];
     }
-
-    return res;
 }
