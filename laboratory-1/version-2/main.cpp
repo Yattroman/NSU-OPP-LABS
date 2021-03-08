@@ -12,7 +12,7 @@ void distributeData(double* vectorX, double* vectorB, int* sendcounts, int* recv
     MPI_Allgatherv(vecBPart, sendcounts[procRank], MPI_DOUBLE, vectorB, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
-void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int N, int procSize){
+void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
         displs[i] = (i+lastRowAdding)*rowNum;
         recvcounts[i] = rowNum;
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 
     initVectorU(N, vecU);
 
-    fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, N, procSize);
+    fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, procSize);
 
     int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
 
@@ -85,48 +85,55 @@ int main(int argc, char** argv)
     for (int ui = 0; ui < 4; ++ui) {
         if(ui == 0)
             temp[ui] = (double*) calloc(rowNumMod, sizeof(double));
-        temp[ui] = (double*) calloc(N, sizeof(double));
+        else
+            temp[ui] = (double*) calloc(N, sizeof(double));
     }
 
-    while (1){
+    //mulMatrixAndVector(rowNumMod, N, mProcRows, z[0], temp[0]);                      // Az(k)
+    //MPI_Allgatherv(temp[0], sendcounts[procRank], MPI_DOUBLE, AzkPart, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 
-        mulMatrixAndVector(rowNumMod, N, mProcRows, z[0], temp[0]);                      // Az(k)
+//    printVector(temp[0], rowNumMod, procRank);
+//    printVector(AzkPart, N, procRank);
+    printProcRows(mProcRows, rowNumMod, N);
 
-        MPI_Allgatherv(temp[0], sendcounts[procRank], MPI_DOUBLE, AzkPart, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+//    while (1){
+//
+//        mulMatrixAndVector(rowNumMod, N, mProcRows, z[0], temp[0]);                      // Az(k)
+//
+//        MPI_Allgatherv(temp[0], sendcounts[procRank], MPI_DOUBLE, AzkPart, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+//
+//        alpha[1] = scalarVectorAndVector(N, r[0], r[0])
+//                   / scalarVectorAndVector(N, AzkPart, z[0]);               // alpha(k+1) = (r(k), r(k)) / (Az(k), z(k))
+//
+//        mulVectorAndScalar(N, alpha[1], z[0], temp[1]);
+//        sumVectorAndVector(N, x[0], temp[1], x[1]);            // x(k+1) = x(k) + alpha(k+1)z(k)
+//
+//        mulVectorAndScalar(N, alpha[1], AzkPart, temp[2]);
+//        subVectorAndVector(N, r[0], temp[2], r[1]);            // r(k+1) = r(k) - alpha(k+1)Az(k)
+//
+//        beta[1] = scalarVectorAndVector(N, r[1], r[1])
+//                  / scalarVectorAndVector(N, r[0], r[0]);         // b(k+1) = (r(k+1), r(k+1)) / (r(k), r(k))
+//
+//        mulVectorAndScalar(N, beta[1], z[0], temp[3]);
+//        sumVectorAndVector(N, r[1], temp[3], z[1]);            // z(k+1) = r(k+1) + beta(k+1)z(k)*/
+//
+//        repeats++;
+//
+//        if( (vectorLength(N, r[0]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k)| / |b| < EPSILON
+//            break;
+//        }
+//
+//        std::memcpy(x[0], x[1], N*sizeof(double));
+//        std::memcpy(r[0], r[1], N*sizeof(double));
+//        std::memcpy(z[0], z[1], N*sizeof(double));
+//    }
 
-        alpha[1] = scalarVectorAndVector(N, r[0], r[0])
-                   / scalarVectorAndVector(N, AzkPart, z[0]);               // alpha(k+1) = (r(k), r(k)) / (Az(k), z(k))
-
-        mulVectorAndScalar(N, alpha[1], z[0], temp[1]);
-        sumVectorAndVector(N, x[0], temp[1], x[1]);            // x(k+1) = x(k) + alpha(k+1)z(k)
-
-        mulVectorAndScalar(N, alpha[1], AzkPart, temp[2]);
-        subVectorAndVector(N, r[0], temp[2], r[1]);            // r(k+1) = r(k) - alpha(k+1)Az(k)
-
-        beta[1] = scalarVectorAndVector(N, r[1], r[1])
-                  / scalarVectorAndVector(N, r[0], r[0]);         // b(k+1) = (r(k+1), r(k+1)) / (r(k), r(k))
-
-        mulVectorAndScalar(N, beta[1], z[0], temp[3]);
-        sumVectorAndVector(N, r[1], temp[3], z[1]);            // z(k+1) = r(k+1) + beta(k+1)z(k)*/
-
-        repeats++;
-
-        std::memcpy(x[0], x[1], N*sizeof(double));
-        std::memcpy(r[0], r[1], N*sizeof(double));
-        std::memcpy(z[0], z[1], N*sizeof(double));
-
-        if( (vectorLength(N, r[0]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k)| / |b| < EPSILON
-            break;
-        }
-
-    }
-
-    if(procRank == 0){
+    /*if(procRank == 0){
         printVector(vecU, N, procRank);
         printVector(x[1], N, procRank);
 
         std::cout << "Repeats in total: " << repeats << "\n";
-    }
+    }*/
 
     for (size_t ui = 0; ui < 4; ++ui) {
         free(temp[ui]);

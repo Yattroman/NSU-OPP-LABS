@@ -3,7 +3,8 @@
 
 void initVectorU(int N, double* vectorU){
     for(size_t i = 0; i < N; ++i){
-        vectorU[i] = sin(2*M_PI*(i+1)/N );
+//        vectorU[i] = sin(2*M_PI*(i+1)/N );
+        vectorU[i] = 1;
     }
 }
 
@@ -15,7 +16,7 @@ void initMatrixProcRows(int M, int N, double* matrixProcRows, int procRank, int 
         for(size_t j = 0; j < N; ++j){
             matrixProcRows[N*i + j] = 1;
             if(procRank == 0){
-                matrixProcRows[N*i] = 2;
+                matrixProcRows[N*i + i] = 2;
             } else {
                 matrixProcRows[N*i + M*procRank + lastRowAdding + i] = 2;
             }
