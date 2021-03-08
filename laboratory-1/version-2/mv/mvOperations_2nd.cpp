@@ -27,40 +27,29 @@ void printProcRows(double* matrix, int M, int N){
     }
 }
 
-double* subVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = (double*) calloc(N, sizeof(double));
-
+void subVectorAndVector(int N, const double* vectorL, const double* vectorR, double * res){
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] - vectorR[j];
     }
-
-    return res;
 }
 
-double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = (double*) calloc(N, sizeof(double));
-
+void sumVectorAndVector(int N, const double* vectorL, const double* vectorR, double * res){
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] + vectorR[j];
     }
-
-    return res;
 }
 
-double* mulMatrixAndVector(int M, int N, double* matrix, double* vector){
-    double* res = (double*) calloc(M, sizeof(double));
+void mulMatrixAndVector(int rowNumMod, int N, const double* matrix, const double* vector, double * res){
 
-    for(size_t i = 0; i < M; ++i) {
-        res[i] = 0;
+    for(size_t i = 0; i < rowNumMod; ++i) {
         for (size_t j = 0; j < N; ++j) {
             res[i] += matrix[i*N + j] * vector[j];
         }
     }
 
-    return res;
 }
 
-double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR){ // Memory OK
+double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR){
     double res = 0;
 
     for(size_t i = 0; i < N; ++i) {
@@ -70,7 +59,7 @@ double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR
     return res;
 }
 
-double vectorLength(int N, const double* vector){ // Memory OK
+double vectorLength(int N, const double* vector){
     double res = 0;
 
     for(size_t i = 0; i < N; ++i) {
@@ -82,8 +71,7 @@ double vectorLength(int N, const double* vector){ // Memory OK
     return res;
 }
 
-double* mulVectorAndScalar(int N, double scalar, double* vector){
-    double* res = (double*) calloc(N, sizeof(double));
+void mulVectorAndScalar(int N, double scalar, const double* vector, double * res){
 
     for(size_t i = 0; i < N; ++i) {
         for (size_t j = 0; j < N; ++j) {
@@ -91,5 +79,4 @@ double* mulVectorAndScalar(int N, double scalar, double* vector){
         }
     }
 
-    return res;
 }
