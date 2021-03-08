@@ -1,13 +1,10 @@
 #include <mpi.h>
 #include <iostream>
-#include <unistd.h>
 #include <cstring>
 #include "mv/mvOperations_3rd.h"
 #include "mv/mvInit_3rd.h"
 
 #define EPSILON 0.0001
-
-void distributeData(){ }
 
 void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
@@ -68,8 +65,6 @@ int main(int argc, char** argv)
     MPI_Scatterv(vecU, sendcounts, displs, MPI_DOUBLE, vecUPart, recvcounts[procRank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
     vecBPart = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, vecUPart, recvcounts); // init vector B part
 
-    //printVector(vecBPart, rowNumMod, procRank);
-
     rPart[0] = (double*) calloc(rowNum, sizeof(double));
     xPart[0] = (double*) calloc(rowNum, sizeof(double));
     zPart[0] = (double*) calloc(rowNum, sizeof(double));
@@ -77,14 +72,6 @@ int main(int argc, char** argv)
     std::memcpy(rPart[0], vecBPart, sizeof(double)*rowNumMod); // r0 = b - Ax0, где x0 - нулевой вектор
     std::memcpy(zPart[0], rPart[0], sizeof(double)*rowNumMod);  // z0 = r0
 
-    // printProcRows(mProcRows, rowNumMod, N);
-
-   /* double * temp = subVectorAndVector(rowNumMod, vecBPart, vecBPart);
-    double * tempres = (double*) calloc(N, sizeof(double));
-    MPI_Allgatherv(temp, sendcounts[procRank], MPI_DOUBLE, tempres, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
-    printVector(tempres, N, procRank);*/
-
-    // std::cout << scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
     double* temp[] = {NULL, NULL, NULL, NULL};
 
     while (1){
