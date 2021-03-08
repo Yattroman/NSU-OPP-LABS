@@ -17,37 +17,25 @@ void printVector(double* vector, int N){
     printf("\n");
 }
 
-double* subVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = new double[N];
-
+void subVectorAndVector(int N, const double* vectorL, const double* vectorR, double * res){
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] - vectorR[j];
     }
-
-    return res;
 }
 
-double* sumVectorAndVector(int N, double* vectorL, double* vectorR){
-    double* res = new double[N];
-
+void sumVectorAndVector(int N, const double* vectorL, const double* vectorR, double * res){
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] + vectorR[j];
     }
-
-    return res;
 }
 
-double* mulMatrixAndVector(int N, double* matrix, double* vector){
-    double* res = new double[N];
-
+void mulMatrixAndVector(int N, const double* matrix, const double* vector, double * res){
     for(size_t i = 0; i < N; ++i) {
         res[i] = 0;
         for (size_t j = 0; j < N; ++j) {
             res[i] += matrix[i*N + j] * vector[j];
         }
     }
-
-    return res;
 }
 
 double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR){ // Memory OK
@@ -72,14 +60,10 @@ double vectorLength(int N, const double* vector){ // Memory OK
     return res;
 }
 
-double* mulVectorAndScalar(int N, double scalar, double* vector){
-    double* res = new double[N];
-
+void mulVectorAndScalar(int N, double scalar, const double* vector, double * res){
     for(size_t i = 0; i < N; ++i) {
         for (size_t j = 0; j < N; ++j) {
             res[j] = scalar * vector[j];
         }
     }
-
-    return res;
 }

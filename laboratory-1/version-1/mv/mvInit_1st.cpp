@@ -2,7 +2,7 @@
 #include "mvInit_1st.h"
 
 double* initMatrixA(int N){
-    double* mA = new double[N*N];
+    double* mA = (double*) calloc(N*N, sizeof(double));
 
     for(size_t i = 0; i < N; ++i){
         for(size_t j = 0; j < N; ++j){
@@ -18,18 +18,17 @@ double* initMatrixA(int N){
 }
 
 double* initVectorU(int N){
-    double* vecU = new double[N];
+    double* vecU = (double*) calloc(N, sizeof(double));
 
     for(size_t i = 0; i < N; ++i){
-        //vecU[i] = sin(2*M_PI*(i+1)/N );
-        vecU[i] = 100;
+        vecU[i] = sin(2*M_PI*(i+1)/N );
     }
 
     return vecU;
 }
 
 double* initVectorB(int N, double* mA, double* vecU){
-    double* vecB = new double[N];
+    double* vecB = (double*) calloc(N, sizeof(double));
 
     for(size_t i = 0; i < N; ++i){
         vecB[i] = 0;
@@ -43,8 +42,6 @@ double* initVectorB(int N, double* mA, double* vecU){
 }
 
 double* initVectorX(int N){
-    double* vecX = new double[N];
-    memset(vecX, 0, N);
-
+    double* vecX = (double*) calloc(N, sizeof(double));
     return vecX;
 }
