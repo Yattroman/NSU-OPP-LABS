@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 {
     int N = atoi(argv[1]);
 
-    int  procSize, procRank;
+    int procSize, procRank;
 
     int repeats = 0;
 
@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 
     double* mProcRows;
     double* vecBPart;
-    double* vecXPart;
+    double* vecUPart;
 
     double* vecXRes;
 
@@ -60,14 +60,13 @@ int main(int argc, char** argv)
 
     int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
 
+    vecUPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
     mProcRows = (double*) calloc(rowNumMod*N, sizeof(double));
-    vecBPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
-    vecXPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
-
-    vecXRes = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
+    vecXRes = (double*) calloc(N, sizeof(double));
 
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
-    vecBPart = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, vecU, recvcounts); // init vector B part
+    MPI_Scatterv(vecU, sendcounts, displs, MPI_DOUBLE, vecUPart, recvcounts[procRank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    vecBPart = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, vecUPart, recvcounts); // init vector B part
 
     //printVector(vecBPart, rowNumMod, procRank);
 
@@ -78,28 +77,33 @@ int main(int argc, char** argv)
     std::memcpy(rPart[0], vecBPart, sizeof(double)*rowNumMod); // r0 = b - Ax0, где x0 - нулевой вектор
     std::memcpy(zPart[0], rPart[0], sizeof(double)*rowNumMod);  // z0 = r0
 
-    //printProcRows(mProcRows, rowNumMod, N);
+    // printProcRows(mProcRows, rowNumMod, N);
 
-    //std::cout << scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
+   /* double * temp = subVectorAndVector(rowNumMod, vecBPart, vecBPart);
+    double * tempres = (double*) calloc(N, sizeof(double));
+    MPI_Allgatherv(temp, sendcounts[procRank], MPI_DOUBLE, tempres, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+    printVector(tempres, N, procRank);*/
+
+    // std::cout << scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
+    double* temp[] = {NULL, NULL, NULL, NULL};
 
     while (1){
-        double* temp[] = {NULL, NULL, NULL, NULL};
 
         temp[0] = mulMatrixAndVector(rowNum, lastRowAdding, rowNumMod, N, mProcRows, zPart[0], recvcounts);
         alpha[1] = scalarVectorAndVector(rowNumMod, rPart[0], rPart[0])
-                    / scalarVectorAndVector(rowNumMod, temp[0], zPart[0]);
+                    / scalarVectorAndVector(rowNumMod, temp[0], zPart[0]);          // "alpha(k+1) = (r(k), r(k)) / (Az(k), z(k))"
 
         temp[1] = mulVectorAndScalar(rowNumMod, alpha[1], zPart[0]);
-        xPart[1] = sumVectorAndVector(rowNumMod, xPart[0], temp[1]);
+        xPart[1] = sumVectorAndVector(rowNumMod, xPart[0], temp[1]);                // "x(k+1) = x(k) + alpha(k+1)z(k)"
 
         temp[2] = mulVectorAndScalar(rowNumMod, alpha[1], temp[0]);
-        rPart[1] = subVectorAndVector(rowNumMod, rPart[0], temp[2]);
+        rPart[1] = subVectorAndVector(rowNumMod, rPart[0], temp[2]);                // "r(k+1) = r(k) - alpha(k+1)Az(k)"
 
         beta[1] = scalarVectorAndVector(rowNumMod, rPart[1], rPart[1])
-                    / scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);
+                    / scalarVectorAndVector(rowNumMod, rPart[0], rPart[0]);         // "b(k+1) = (r(k+1), r(k+1)) / (r(k), r(k))"
 
         temp[3] = mulVectorAndScalar(rowNumMod, beta[1], zPart[0]);
-        zPart[1] = sumVectorAndVector(rowNumMod, rPart[1], temp[3]);
+        zPart[1] = sumVectorAndVector(rowNumMod, rPart[1], temp[3]);                // "z(k+1) = r(k+1) + beta(k+1)z(k)"
 
         for (int ui = 0; ui < 4; ++ui) {
             free(temp[ui]);
@@ -109,7 +113,9 @@ int main(int argc, char** argv)
             repeats++;
         }
 
-        if( (vectorLength(rowNumMod, rPart[0]) / vectorLength(rowNumMod, vecBPart) ) < EPSILON){    // |r(k+1)| / |b| < EPSILON
+        if( (vectorLength(rowNumMod, rPart[0]) / vectorLength(rowNumMod, vecBPart) ) < EPSILON){    // |r(k)| / |b| < EPSILON
+            free(zPart[0]);
+            free(rPart[0]);
             break;
         }
 
