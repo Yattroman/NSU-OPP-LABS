@@ -37,7 +37,6 @@ double* initVectorB(int N, double* mA, double* vecU){
         }
     }
 
-    //delete[] vecU;
     return vecB;
 }
 

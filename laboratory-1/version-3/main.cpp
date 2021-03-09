@@ -8,7 +8,7 @@
 
 void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
-        displs[i] = (i+lastRowAdding)*rowNum;
+        displs[i] = i*rowNum+lastRowAdding;
         recvcounts[i] = rowNum;
         sendcounts[i] = rowNum;
     }

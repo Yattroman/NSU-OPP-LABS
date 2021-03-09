@@ -85,7 +85,5 @@ int main(int argc, char* argv[]){
     free(mA);
     free(vecU);
 
-    std::cout << repeats;
-
     return 0;
 }
