@@ -14,7 +14,7 @@ void distributeData(double* vectorX, double* vectorB, int* sendcounts, int* recv
 
 void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
-        displs[i] = (i+lastRowAdding)*rowNum;
+        displs[i] = i*rowNum+lastRowAdding;
         recvcounts[i] = rowNum;
         sendcounts[i] = rowNum;
     }
@@ -37,6 +37,8 @@ int main(int argc, char** argv)
 
     int rowNum = N/procSize;
     int lastRowAdding = N%procSize;
+
+    int growStatus = 0;
 
     double* mProcRows;
     double* vecBPart;
@@ -123,9 +125,19 @@ int main(int argc, char** argv)
             break;
         }
 
+        /*if(growStatus > 10){
+            fprintf(stderr, "There are no solves");
+            break;
+        } else if( vectorLength(N, r[0]) < vectorLength(N, r[1]) ){
+            growStatus++;
+        } else if( vectorLength(N, r[0]) > vectorLength(N, r[1]) ){
+            growStatus = 0;
+        }*/
+
         std::memcpy(x[0], x[1], N*sizeof(double));
         std::memcpy(r[0], r[1], N*sizeof(double));
         std::memcpy(z[0], z[1], N*sizeof(double));
+
     }
 
     if(procRank == 0){
