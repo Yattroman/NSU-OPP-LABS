@@ -21,7 +21,8 @@ double* initVectorU(int N){
     double* vecU = (double*) calloc(N, sizeof(double));
 
     for(size_t i = 0; i < N; ++i){
-        vecU[i] = sin(2*M_PI*(i+1)/N );
+        vecU[i] = sin(2*M_PI*i/N );
+//        vecU[i] = i;
     }
 
     return vecU;

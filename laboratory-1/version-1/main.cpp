@@ -10,6 +10,8 @@ int main(int argc, char* argv[]){
     int N = atoi(argv[1]);
     int repeats = 0;
 
+    int growStatus = 0;
+
     double* mA = initMatrixA(N);
     double* vecU = initVectorU(N);
     double* vecB = initVectorB(N, mA, vecU);
@@ -62,6 +64,14 @@ int main(int argc, char* argv[]){
             break;
         }
 
+        if(growStatus > 10){
+            break;
+        } else if( vectorLength(N, r[0]) < vectorLength(N, r[1]) ){
+            growStatus++;
+        } else if( vectorLength(N, r[0]) > vectorLength(N,  r[1]) ){
+            growStatus = 0;
+        }
+
         std::memcpy(x[0], x[1], N*sizeof(double));
         std::memcpy(r[0], r[1], N*sizeof(double));
         std::memcpy(z[0], z[1], N*sizeof(double));
@@ -69,8 +79,14 @@ int main(int argc, char* argv[]){
         ++repeats;
     }
 
-    printVector(vecU, N);
-    printVector(x[1], N);
+    if(growStatus <= 10){
+        printVector(vecU, N);
+        printVector(x[1], N);
+        std::cout << "Repeats in total: " << repeats << "\n";
+    } else {
+        std::cout << "There are no roots!\n";
+    }
+
 
     for (size_t ui = 0; ui < 4; ++ui) {
         free(temp[ui]);

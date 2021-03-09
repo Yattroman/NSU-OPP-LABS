@@ -5,7 +5,7 @@
 #include "mv/mvOperations_2nd.h"
 #include "mv/mvInit_2nd.h"
 
-#define EPSILON 0.0001
+#define EPSILON 1e-5
 
 void distributeData(double* vectorX, double* vectorB, int* sendcounts, int* recvcounts, int* displs, int procRank, double* vecBPart, int N){
     MPI_Bcast(vectorX, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -91,13 +91,6 @@ int main(int argc, char** argv)
             temp[ui] = (double*) calloc(N, sizeof(double));
     }
 
-//    mulMatrixAndVector(rowNumMod, N, mProcRows, z[0], temp[0]);                      // Az(k)
-//    MPI_Allgatherv(temp[0], sendcounts[procRank], MPI_DOUBLE, AzkPart, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
-
-//    printVector(temp[0], rowNumMod, procRank);
-//    printVector(AzkPart, N, procRank);
-   // printProcRows(mProcRows, rowNumMod, N);
-
     while (1){
 
         mulMatrixAndVector(rowNumMod, N, mProcRows, z[0], temp[0]);                      // Az(k)
@@ -125,14 +118,13 @@ int main(int argc, char** argv)
             break;
         }
 
-        /*if(growStatus > 10){
-            fprintf(stderr, "There are no solves");
+        if(growStatus > 10){
             break;
         } else if( vectorLength(N, r[0]) < vectorLength(N, r[1]) ){
             growStatus++;
         } else if( vectorLength(N, r[0]) > vectorLength(N, r[1]) ){
             growStatus = 0;
-        }*/
+        }
 
         std::memcpy(x[0], x[1], N*sizeof(double));
         std::memcpy(r[0], r[1], N*sizeof(double));
@@ -140,11 +132,12 @@ int main(int argc, char** argv)
 
     }
 
-    if(procRank == 0){
+    if(procRank == 0 && growStatus <= 10){
         printVector(vecU, N, procRank);
         printVector(x[1], N, procRank);
-
         std::cout << "Repeats in total: " << repeats << "\n";
+    } else if(procRank == 0 && growStatus > 10) {
+        std::cout << "There are no roots!\n";
     }
 
     for (size_t ui = 0; ui < 4; ++ui) {

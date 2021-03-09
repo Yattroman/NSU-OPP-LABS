@@ -47,7 +47,7 @@ double scalarVectorAndVector(int rowNumMod, const double* vectorLPart, const dou
     // res = tempRes1 + tempRes2 + tempRes3 + ... + tempRes(procRank) [between processes]
     double res = 0;
 
-    // tempRes = a1*b1 + a2*b2 + a3*b3 + ...+ a(rowNumMod)*b(rowNumMod) [between vectorL and vector R]
+    // tempRes = a1*b1 + a2*b2 + a3*b3 + ...+ a(rowNumMod)*b(rowNumMod) [between vectorL and vectorR]
     double tempRes = 0;
 
     for (int i = 0; i < rowNumMod; ++i) {

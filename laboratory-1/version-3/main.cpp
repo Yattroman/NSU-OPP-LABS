@@ -24,6 +24,7 @@ int main(int argc, char** argv)
     int procSize, procRank;
 
     int repeats = 0;
+    int growStatus = 0;
 
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD, &procSize);
@@ -108,18 +109,27 @@ int main(int argc, char** argv)
             break;
         }
 
+        if(growStatus > 10){
+            break;
+        } else if( vectorLength(N, rPart[0]) < vectorLength(N, rPart[1]) ){
+            growStatus++;
+        } else if( vectorLength(N, rPart[0]) > vectorLength(N,  rPart[1]) ){
+            growStatus = 0;
+        }
+
         std::memcpy(xPart[0], xPart[1], sizeof(double)*rowNumMod);
         std::memcpy(rPart[0], rPart[1], sizeof(double)*rowNumMod);
         std::memcpy(zPart[0], zPart[1], sizeof(double)*rowNumMod);
     }
 
-    MPI_Allgatherv(xPart[0], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgatherv(xPart[1], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 
-    if(procRank == 0){
+    if(procRank == 0 && growStatus <= 10){
         printVector(vecU, N, procRank);
         printVector(vecXRes, N, procRank);
-
         std::cout << "Repeats in total: " << repeats << "\n";
+    } else if(procRank == 0 && growStatus > 10) {
+        std::cout << "There are no roots!\n";
     }
 
     MPI_Finalize();
