@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     std::memcpy(rPart[0], vecBPart, sizeof(double)*rowNumMod); // r0 = b - Ax0, где x0 - нулевой вектор
     std::memcpy(zPart[0], rPart[0], sizeof(double)*rowNumMod);  // z0 = r0
 
-    double* temp[] = {NULL, NULL, NULL, NULL};
+    double* temp[4];
 
     for (int ui = 0; ui < 4; ++ui) {
         temp[ui] = (double*) calloc(rowNumMod, sizeof(double));
@@ -138,13 +138,11 @@ int main(int argc, char** argv)
         free(temp[ui]);
     }
 
-    free(rPart[0]);
-    free(xPart[0]);
-    free(zPart[0]);
-
-    free(rPart[1]);
-    free(xPart[1]);
-    free(zPart[1]);
+    for (int i = 0; i < 2; ++i) {
+        free(xPart[i]);
+        free(zPart[i]);
+        free(rPart[i]);
+    }
 
     free(vecBPart);
     free(vecXRes);

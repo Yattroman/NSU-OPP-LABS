@@ -1,6 +1,5 @@
 #include <mpi.h>
 #include <iostream>
-#include <unistd.h>
 #include <cstring>
 #include "mv/mvOperations_2nd.h"
 #include "mv/mvInit_2nd.h"
@@ -112,7 +111,9 @@ int main(int argc, char** argv)
         mulVectorAndScalar(N, beta[1], z[0], temp[3]);
         sumVectorAndVector(N, r[1], temp[3], z[1]);            // z(k+1) = r(k+1) + beta(k+1)z(k)
 
-        repeats++;
+        if(procRank == 0) {
+            repeats++;
+        }
 
         if( (vectorLength(N, r[0]) / vectorLength(N, vecB) ) < EPSILON){    // |r(k)| / |b| < EPSILON
             break;
@@ -151,6 +152,10 @@ int main(int argc, char** argv)
     }
 
     MPI_Finalize();
+
+    free(displs);
+    free(sendcounts);
+    free(recvcounts);
 
     return 0;
 }
