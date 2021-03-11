@@ -4,7 +4,6 @@
 void initVectorU(int N, double* vectorU){
     for(size_t i = 0; i < N; ++i){
         vectorU[i] = sin(2*M_PI*i/N );
-//        vectorU[i] = i;
     }
 }
 

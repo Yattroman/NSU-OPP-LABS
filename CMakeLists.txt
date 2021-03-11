@@ -11,6 +11,6 @@ set(LAB1V1_SOURCE laboratory-1/version-1/main.cpp laboratory-1/version-1/mv/mvIn
 set(LAB1V2_SOURCE laboratory-1/version-2/main.cpp laboratory-1/version-2/mv/mvInit_2nd.cpp laboratory-1/version-2/mv/mvOperations_2nd.cpp)
 set(LAB1V3_SOURCE laboratory-1/version-3/main.cpp laboratory-1/version-3/mv/mvInit_3rd.cpp laboratory-1/version-3/mv/mvOperations_3rd.cpp)
 
-add_executable(laboratory-1-v1 ${LAB1V1_SOURCE} )
-add_executable(laboratory-1-v2 ${LAB1V2_SOURCE} )
-add_executable(laboratory-1-v3 ${LAB1V3_SOURCE} )
+add_executable(laboratory-1-v1 ${LAB1V1_SOURCE})
+add_executable(laboratory-1-v2 ${LAB1V2_SOURCE})
+add_executable(laboratory-1-v3 ${LAB1V3_SOURCE})

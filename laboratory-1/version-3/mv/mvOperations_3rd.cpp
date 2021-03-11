@@ -31,7 +31,7 @@ void sumVectorAndVector(int rowNumMod, const double* vectorLPart, const double* 
     }
 }
 
-void mulMatrixAndVector(int rowNum, int lastRowAdding, int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts, double * res){ // OK.
+void mulMatrixAndVector(int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts, double * res){ // OK.
     double temp[N];
 
     for (int i = 0; i < rowNumMod; ++i) {
