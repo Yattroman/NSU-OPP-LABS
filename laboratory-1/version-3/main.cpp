@@ -4,7 +4,7 @@
 #include "mv/mvOperations_3rd.h"
 #include "mv/mvInit_3rd.h"
 
-#define EPSILON 1e-1
+#define EPSILON 1e-6
 
 void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
@@ -56,13 +56,13 @@ int main(int argc, char** argv)
     fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, procSize);
 
     initVectorU(N, vecU);
-    vecUPart = (double*) calloc(rowNum+lastRowAdding, sizeof(double));
+    vecUPart = (double*) calloc(N, sizeof(double));
     mProcRows = (double*) calloc(rowNumMod*N, sizeof(double));
 
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
     MPI_Scatterv(vecU, sendcounts, displs, MPI_DOUBLE, vecUPart, recvcounts[procRank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    vecBPart = (double*) calloc(rowNumMod, sizeof(double));
+    vecBPart = (double*) calloc(N, sizeof(double));
     mulMatrixAndVector(rowNumMod, N, mProcRows, vecUPart, recvcounts, vecBPart); // init vector B part
 
     for (int i = 0; i < 2; ++i) {
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     double* temp[4];
 
     for (int ui = 0; ui < 4; ++ui) {
-        temp[ui] = (double*) calloc(rowNumMod, sizeof(double));
+        temp[ui] = (double*) calloc(N, sizeof(double));
     }
 
     while (1){
@@ -108,8 +108,8 @@ int main(int argc, char** argv)
             break;
         }
 
-        MPI_Allgatherv(xPart[1], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
-        printVector(vecXRes, N, procRank);
+        /*MPI_Allgatherv(xPart[1], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+        printVector(vecXRes, N, procRank);*/
 
         if(growStatus > 10){
             break;
