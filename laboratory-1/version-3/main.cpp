@@ -19,23 +19,24 @@ void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts
 
 int main(int argc, char** argv)
 {
-    int N = atoi(argv[1]);
-
     int procSize, procRank;
-
-    int repeats = 0;
-    int growStatus = 0;
 
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD, &procSize);
     MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
 
+    int N = atoi(argv[1]);
+
+    int repeats = 0;
+    int growStatus = 0;
+
     int rowNum = N/procSize;
     int lastRowAdding = N%procSize;
+    int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
 
-    double* mProcRows;
-    double* vecBPart;
-    double* vecUPart;
+    double* mProcRows = (double*) calloc(N*rowNumMod, sizeof(double));
+    double* vecBPart = (double*) calloc(rowNumMod, sizeof(double));
+    double* vecUPart = (double*) calloc(rowNumMod+lastRowAdding, sizeof(double));
 
     double* vecXRes = (double*) calloc(N, sizeof(double));
     double* vecU = (double*) calloc(N, sizeof(double));
@@ -51,19 +52,12 @@ int main(int argc, char** argv)
     int* recvcounts = (int*) calloc(procSize, sizeof(int));
     int* sendcounts = (int*) calloc(procSize, sizeof(int));
 
-    int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
-
     fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, procSize);
 
     initVectorU(N, vecU);
-    vecUPart = (double*) calloc(rowNumMod, sizeof(double));
-    mProcRows = (double*) calloc(rowNumMod*N, sizeof(double));
-
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
     MPI_Scatterv(vecU, sendcounts, displs, MPI_DOUBLE, vecUPart, recvcounts[procRank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    vecBPart = (double*) calloc(rowNumMod, sizeof(double));
-    mulMatrixAndVector(rowNumMod, N, mProcRows, vecUPart, recvcounts, vecBPart); // init vector B part
+    mulMatrixAndVector(rowNumMod, N, mProcRows, vecUPart, recvcounts, vecBPart);
 
     for (int i = 0; i < 2; ++i) {
         rPart[i] = (double*) calloc(rowNumMod, sizeof(double));
@@ -80,11 +74,7 @@ int main(int argc, char** argv)
         temp[ui] = (double*) malloc(rowNumMod*sizeof(double));
     }
 
-    std::cout << "'" << rowNumMod << "'";
-
     while (1){
-
-        //MPI_Barrier(MPI_COMM_WORLD);
 
         mulMatrixAndVector(rowNumMod, N, mProcRows, zPart[0], recvcounts, temp[0]);
 
@@ -105,15 +95,11 @@ int main(int argc, char** argv)
 
         if(procRank == 0){
             repeats++;
-            // std::cout << "'" << repeats << "'";
         }
 
         if( (vectorLength(rowNumMod, rPart[0]) / vectorLength(rowNumMod, vecBPart) ) < EPSILON){    // |r(k)| / |b| < EPSILON
             break;
         }
-
-        /*MPI_Allgatherv(xPart[1], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
-        printVector(vecXRes, N, procRank);*/
 
         if(growStatus > 10){
             break;
@@ -123,13 +109,13 @@ int main(int argc, char** argv)
             growStatus = 0;
         }
 
-        std::memcpy(xPart[0], xPart[1], sizeof(double)*rowNumMod);
-        std::memcpy(rPart[0], rPart[1], sizeof(double)*rowNumMod);
-        std::memcpy(zPart[0], zPart[1], sizeof(double)*rowNumMod);
+        std::memmove(xPart[0], xPart[1], sizeof(double)*rowNumMod);
+        std::memmove(rPart[0], rPart[1], sizeof(double)*rowNumMod);
+        std::memmove(zPart[0], zPart[1], sizeof(double)*rowNumMod);
 
     }
 
-    MPI_Allgatherv(xPart[1], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgatherv(xPart[0], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 
     if(procRank == 0 && growStatus <= 10){
         printVector(vecU, N, procRank);

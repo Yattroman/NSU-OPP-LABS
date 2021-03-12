@@ -33,10 +33,11 @@ void sumVectorAndVector(int rowNumMod, const double* vectorLPart, const double* 
 
 void mulMatrixAndVector(int rowNumMod, int N, const double* matrixPart, const double* vectorPart, int* recvcounts, double * res){ // OK.
     double temp[N];
+    memset(temp, 0, N*sizeof(double));
 
     for (int i = 0; i < rowNumMod; ++i) {
         for (int j = 0; j < N; ++j) {
-            temp[j] += matrixPart[i*N+j]*vectorPart[i];
+            temp[j] += matrixPart[i*N+j] * vectorPart[i];
         }
     }
 
