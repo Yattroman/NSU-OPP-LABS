@@ -17,7 +17,6 @@ int main(int argc, char* argv[]){
 
     double* mA = initMatrixA(N);
 
-    srand(10);
     double* vecB = initVectorB(N);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &startt);

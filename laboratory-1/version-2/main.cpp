@@ -6,9 +6,10 @@
 
 #define EPSILON 1e-5
 
-void distributeData(double* vectorX, double* vectorB, int* sendcounts, int* recvcounts, int* displs, int procRank, double* vecBPart, int N){
+void distributeData(double* vectorX, double* vectorB, int N){
     MPI_Bcast(vectorX, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Allgatherv(vecBPart, sendcounts[procRank], MPI_DOUBLE, vectorB, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+//    MPI_Allgatherv(vecBPart, sendcounts[procRank], MPI_DOUBLE, vectorB, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Bcast(vectorB, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 }
 
 void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
@@ -38,25 +39,25 @@ int main(int argc, char** argv)
     int rowNum = N/procSize;
     int lastRowAdding = N%procSize;
 
+    int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
+
     int growStatus = 0;
 
-    double* mProcRows;
-    double* vecBPart;
+    double* mProcRows = (double*) calloc(rowNumMod*N, sizeof(double));
+    double* vecB = (double*) calloc(N, sizeof(double));
+    double* AzkPart = (double*) calloc(N, sizeof(double));
 
     double* r[] = {NULL, NULL};
     double* z[] = {NULL, NULL};
     double* x[] = {NULL, NULL};
 
-    double* vecU = (double*) calloc(N, sizeof(double));
-    double* vecB = (double*) calloc(N, sizeof(double));
+    //double* vecU = (double*) calloc(N, sizeof(double)); FOR TEST
 
     for (int i = 0; i < 2; ++i) {
         r[i] = (double*) calloc(N, sizeof(double));
         z[i] = (double*) calloc(N, sizeof(double));
         x[i] = (double*) calloc(N, sizeof(double));
     }
-
-    double* AzkPart = (double*) calloc(N, sizeof(double));
 
     double alpha[] = {0, 0};
     double beta[] = {0, 0};
@@ -65,19 +66,19 @@ int main(int argc, char** argv)
     int* recvcounts = (int*) calloc(procSize, sizeof(int));
     int* sendcounts = (int*) calloc(procSize, sizeof(int));
 
-    initVectorU(N, vecU);
+    // initVectorU(N, vecU); FOR TEST
 
     fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, procSize);
 
-    int rowNumMod = (procRank == 0) ? rowNum+lastRowAdding : rowNum;
-
-    mProcRows = (double*) calloc(rowNumMod*N, sizeof(double));
-    vecBPart = (double*) calloc(rowNumMod, sizeof(double));
-
     initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
-    mulMatrixAndVector(rowNumMod, N, mProcRows, vecU, vecBPart);
 
-    distributeData(x[0], vecB, sendcounts, recvcounts, displs, procRank, vecBPart, N);
+    if(procRank == 0){
+        initVectorB(rowNumMod, vecB);
+    }
+
+    // mulMatrixAndVector(rowNumMod, N, mProcRows, vecU, vecBPart); FOR TEST
+
+    distributeData(x[0], vecB, N);
 
     std::memcpy( r[0], vecB, N*sizeof(double) );                    // r0 = b - Ax0, где x0 - нулевой вектор
     std::memcpy( z[0], r[0], N*sizeof(double) );                // z0 = r0
@@ -90,6 +91,8 @@ int main(int argc, char** argv)
         else
             temp[ui] = (double*) calloc(N, sizeof(double));
     }
+
+    printMatrix(mProcRows, rowNumMod, N);
 
     while (1){
 
@@ -135,11 +138,21 @@ int main(int argc, char** argv)
     }
 
     if(procRank == 0 && growStatus <= 10){
-        printVector(vecU, N, procRank);
-        printVector(x[1], N, procRank);
+        // printVector(vecU, N, procRank); FOR TEST
+        //printVector(x[1], N, procRank);
+        printVector(vecB, N, procRank);
         std::cout << "Repeats in total: " << repeats << "\n";
     } else if(procRank == 0 && growStatus > 10) {
         std::cout << "There are no roots!\n";
+    }
+
+    double endTime = MPI_Wtime();
+    double minimalStartTime;
+    double maximumEndTime;
+    MPI_Reduce( &endTime, &maximumEndTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
+    MPI_Reduce( &startTime, &minimalStartTime, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD );
+    if ( procRank == 0 ) {
+        printf( "Total time spent in seconds id %f\n", maximumEndTime - minimalStartTime );
     }
 
     for (size_t ui = 0; ui < 4; ++ui) {
@@ -152,20 +165,17 @@ int main(int argc, char** argv)
         free(r[i]);
     }
 
-    double endTime = MPI_Wtime();
-    double minimalStartTime;
-    double maximumEndTime;
-    MPI_Reduce( &endTime, &maximumEndTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
-    MPI_Reduce( &startTime, &minimalStartTime, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD );
-    if ( procRank == 0 ) {
-        printf( "Total time spent in seconds id %f\n", maximumEndTime - minimalStartTime );
-    }
-
-    MPI_Finalize();
-
     free(displs);
     free(sendcounts);
     free(recvcounts);
+
+    free(mProcRows);
+
+    free(vecB);
+
+    free(AzkPart);
+
+    MPI_Finalize();
 
     return 0;
 }
