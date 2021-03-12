@@ -5,8 +5,6 @@
 #include <cmath>
 
 double* initMatrixA(int N);
-double* initVectorU(int N);
-double* initVectorB(int N, double* mA, double* vU);
-double* initVectorX(int N);
+double* initVectorB(int N);
 
 #endif //OPP_NSU_LABS_MVINIT_2ND_H

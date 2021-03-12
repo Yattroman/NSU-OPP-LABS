@@ -5,11 +5,12 @@ double* initMatrixA(int N){
     double* mA = (double*) calloc(N*N, sizeof(double));
 
     for(size_t i = 0; i < N; ++i){
+        srand(i);
         for(size_t j = 0; j < N; ++j){
             if(i == j) {
-                mA[i*N + j] = 2.0;
+                mA[i*N + j] = rand() % 300 + 20001;
             } else {
-                mA[i*N + j] = 1.0;
+                mA[i*N + j] = 999.0;
             }
         }
     }
@@ -17,31 +18,13 @@ double* initMatrixA(int N){
     return mA;
 }
 
-double* initVectorU(int N){
-    double* vecU = (double*) calloc(N, sizeof(double));
-
-    for(size_t i = 0; i < N; ++i){
-        vecU[i] = sin(2*M_PI*i/N );
-//        vecU[i] = i;
-    }
-
-    return vecU;
-}
-
-double* initVectorB(int N, double* mA, double* vecU){
+double* initVectorB(int N){
     double* vecB = (double*) calloc(N, sizeof(double));
 
     for(size_t i = 0; i < N; ++i){
-        vecB[i] = 0;
-        for(size_t j = 0; j < N; ++j){
-            vecB[i] += mA[i*N + j] * vecU[j];
-        }
+        srand(i);
+        vecB[i] = rand() % 300;
     }
 
     return vecB;
-}
-
-double* initVectorX(int N){
-    double* vecX = (double*) calloc(N, sizeof(double));
-    return vecX;
 }

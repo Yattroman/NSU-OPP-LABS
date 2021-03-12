@@ -4,35 +4,39 @@
 #include "mv/mvOperations_1st.h"
 #include "mv/mvInit_1st.h"
 
-#define EPSILON 1e-5
+#define EPSILON 1e-10
+#define ACCURACY 1e-10
 
 int main(int argc, char* argv[]){
     int N = atoi(argv[1]);
     int repeats = 0;
 
+    struct timespec endt, startt;
+
     int growStatus = 0;
 
     double* mA = initMatrixA(N);
-    double* vecU = initVectorU(N);
-    double* vecB = initVectorB(N, mA, vecU);
 
-    double* x0 = initVectorX(N);
-    double* r0 = (double*) calloc(N, sizeof(double));
-    double* z0 = (double*) calloc(N, sizeof(double));
+    srand(10);
+    double* vecB = initVectorB(N);
 
-    std::memcpy(r0, vecB, N*sizeof(double)); // r0 = b - Ax0, где x0 - нулевой вектор
-    std::memcpy(z0, r0, N*sizeof(double)); // z0 = r0
+    clock_gettime(CLOCK_MONOTONIC_RAW, &startt);
 
-    double* r[] = {r0, NULL};
-    double* z[] = {z0, NULL};
-    double* x[] = {x0, NULL};
+    double* r[2];
+    double* z[2];
+    double* x[2];
 
-    r[1] = (double*) calloc(N, sizeof(double));
-    z[1] = (double*) calloc(N, sizeof(double));
-    x[1] = (double*) calloc(N, sizeof(double));
+    for (int i = 0; i < 2; ++i) {
+        r[i] = (double*) calloc(N, sizeof(double));
+        z[i] = (double*) calloc(N, sizeof(double));
+        x[i] = (double*) calloc(N, sizeof(double));
+    }
 
     double alpha[] = {0, 0};
     double beta[] = {0, 0};
+
+    std::memcpy(r[0], vecB, N*sizeof(double)); // r0 = b - Ax0, где x0 - нулевой вектор
+    std::memcpy(z[0], r[0], N*sizeof(double)); // z0 = r0
 
     double* temp[4];
 
@@ -80,13 +84,16 @@ int main(int argc, char* argv[]){
     }
 
     if(growStatus <= 10){
-        printVector(vecU, N);
         printVector(x[1], N);
+        //printVector(vecB, N);
         std::cout << "Repeats in total: " << repeats << "\n";
     } else {
         std::cout << "There are no roots!\n";
     }
 
+    clock_gettime(CLOCK_MONOTONIC_RAW, &endt);
+
+    std::cout << "Time taken: "<< endt.tv_sec - startt.tv_sec + ACCURACY*( endt.tv_nsec-startt.tv_nsec ) ;
 
     for (size_t ui = 0; ui < 4; ++ui) {
         free(temp[ui]);
@@ -99,7 +106,7 @@ int main(int argc, char* argv[]){
     }
 
     free(mA);
-    free(vecU);
+    free(vecB);
 
     return 0;
 }
