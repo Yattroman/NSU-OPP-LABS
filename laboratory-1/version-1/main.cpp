@@ -4,7 +4,7 @@
 #include "mv/mvOperations_1st.h"
 #include "mv/mvInit_1st.h"
 
-#define EPSILON 0.0001
+#define EPSILON 1e-5
 
 int main(int argc, char* argv[]){
     int N = atoi(argv[1]);

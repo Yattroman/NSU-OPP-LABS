@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     int repeats = 0;
 
     MPI_Init(&argc,&argv);
-//    double startTime = MPI_Wtime();
+    double startTime = MPI_Wtime();
     MPI_Comm_size(MPI_COMM_WORLD, &procSize);
     MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
 
@@ -152,14 +152,14 @@ int main(int argc, char** argv)
         free(r[i]);
     }
 
-    /*double endTime = MPI_Wtime();
+    double endTime = MPI_Wtime();
     double minimalStartTime;
     double maximumEndTime;
     MPI_Reduce( &endTime, &maximumEndTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
     MPI_Reduce( &startTime, &minimalStartTime, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD );
     if ( procRank == 0 ) {
         printf( "Total time spent in seconds id %f\n", maximumEndTime - minimalStartTime );
-    }*/
+    }
 
     MPI_Finalize();
 

@@ -4,7 +4,7 @@
 #include "mv/mvOperations_3rd.h"
 #include "mv/mvInit_3rd.h"
 
-#define EPSILON 1e-6
+#define EPSILON 1e-5
 
 void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
@@ -29,6 +29,7 @@ int main(int argc, char** argv)
 
     int repeats = 0;
     int growStatus = 0;
+    double startTime = MPI_Wtime();
 
     int rowNum = N/procSize;
     int lastRowAdding = N%procSize;
@@ -123,6 +124,15 @@ int main(int argc, char** argv)
         std::cout << "Repeats in total: " << repeats << "\n";
     } else if(procRank == 0 && growStatus > 10) {
         std::cout << "There are no roots!\n";
+    }
+
+    double endTime = MPI_Wtime();
+    double minimalStartTime;
+    double maximumEndTime;
+    MPI_Reduce( &endTime, &maximumEndTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
+    MPI_Reduce( &startTime, &minimalStartTime, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD );
+    if ( procRank == 0 ) {
+        printf( "Total time spent in seconds id %f\n", maximumEndTime - minimalStartTime );
     }
 
     MPI_Finalize();
