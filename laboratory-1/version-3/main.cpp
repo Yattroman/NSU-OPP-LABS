@@ -4,7 +4,7 @@
 #include "mv/mvOperations_3rd.h"
 #include "mv/mvInit_3rd.h"
 
-#define EPSILON 1e-5
+#define EPSILON 1e-10
 
 void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int* sendcounts, int rowNum, int lastRowAdding, int procSize){
     for (int i = 1; i < procSize; ++i) {
@@ -37,10 +37,10 @@ int main(int argc, char** argv)
 
     double* mProcRows = (double*) calloc(N*rowNumMod, sizeof(double));
     double* vecBPart = (double*) calloc(rowNumMod, sizeof(double));
-    double* vecUPart = (double*) calloc(rowNumMod+lastRowAdding, sizeof(double));
+    // double* vecUPart = (double*) calloc(rowNumMod+lastRowAdding, sizeof(double)); FOR TEST
 
     double* vecXRes = (double*) calloc(N, sizeof(double));
-    double* vecU = (double*) calloc(N, sizeof(double));
+    // double* vecU = (double*) calloc(N, sizeof(double)); FOR TEST
 
     double* rPart[] = {NULL, NULL};
     double* zPart[] = {NULL, NULL};
@@ -55,10 +55,11 @@ int main(int argc, char** argv)
 
     fillDisplsAndRecvcountsTables(displs, recvcounts, sendcounts, rowNum, lastRowAdding, procSize);
 
-    initVectorU(N, vecU);
-    initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding);
-    MPI_Scatterv(vecU, sendcounts, displs, MPI_DOUBLE, vecUPart, recvcounts[procRank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    mulMatrixAndVector(rowNumMod, N, mProcRows, vecUPart, recvcounts, vecBPart);
+    // initVectorU(N, vecU); FOR TEST
+    initMatrixProcRows(rowNum, N, mProcRows, procRank, lastRowAdding, displs);
+    // MPI_Scatterv(vecU, sendcounts, displs, MPI_DOUBLE, vecUPart, recvcounts[procRank], MPI_DOUBLE, 0, MPI_COMM_WORLD); FOR TEST
+    // mulMatrixAndVector(rowNumMod, N, mProcRows, vecUPart, recvcounts, vecBPart); FOR TEST
+    initVectorBPart(rowNumMod, vecBPart, displs, procRank);
 
     for (int i = 0; i < 2; ++i) {
         rPart[i] = (double*) calloc(rowNumMod, sizeof(double));
@@ -94,9 +95,7 @@ int main(int argc, char** argv)
         mulVectorAndScalar(rowNumMod, beta[1], zPart[0], temp[3]);
         sumVectorAndVector(rowNumMod, rPart[1], temp[3], zPart[1]);                // "z(k+1) = r(k+1) + beta(k+1)z(k)"
 
-        if(procRank == 0){
-            repeats++;
-        }
+        repeats++;
 
         if( (vectorLength(rowNumMod, rPart[0]) / vectorLength(rowNumMod, vecBPart) ) < EPSILON){    // |r(k)| / |b| < EPSILON
             break;
@@ -119,7 +118,7 @@ int main(int argc, char** argv)
     MPI_Allgatherv(xPart[0], sendcounts[procRank], MPI_DOUBLE, vecXRes, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 
     if(procRank == 0 && growStatus <= 10){
-        printVector(vecU, N, procRank);
+        // printVector(vecU, N, procRank); FOR TEST
         printVector(vecXRes, N, procRank);
         std::cout << "Repeats in total: " << repeats << "\n";
     } else if(procRank == 0 && growStatus > 10) {
@@ -149,9 +148,9 @@ int main(int argc, char** argv)
 
     free(vecBPart);
     free(vecXRes);
-    free(vecUPart);
+    // free(vecUPart); FOR TEST
     free(mProcRows);
-    free(vecU);
+    // free(vecU); FOR TEST
 
     free(displs);
     free(sendcounts);
