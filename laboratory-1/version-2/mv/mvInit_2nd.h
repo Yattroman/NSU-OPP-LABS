@@ -6,6 +6,6 @@
 
 /*void initVectorU(int N, double* vectorU); FOR TEST*/
 void initVectorB(int N, double * vectorB);
-void initMatrixProcRows(int rowNumMod, int N, double* matrixProcRows, int procRank, int lastRowAdding);
+void initMatrixProcRows(int rowNumMod, int N, double* matrixProcRows, int procRank, int lastRowAdding, int* displs);
 
 #endif //OPP_NSU_LABS_MVINIT_2ND_H

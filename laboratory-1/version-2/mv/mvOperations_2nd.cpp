@@ -42,6 +42,7 @@ void sumVectorAndVector(int N, const double* vectorL, const double* vectorR, dou
 void mulMatrixAndVector(int rowNumMod, int N, const double* matrix, const double* vector, double * res){
 
     for(size_t i = 0; i < rowNumMod; ++i) {
+        res[i] = 0;
         for (size_t j = 0; j < N; ++j) {
             res[i] += matrix[i*N + j] * vector[j];
         }
@@ -60,14 +61,7 @@ double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR
 }
 
 double vectorLength(int N, const double* vector){
-    double res = 0;
-
-    for(size_t i = 0; i < N; ++i) {
-        res += vector[i] * vector[i];
-    }
-
-    res = sqrt(res);
-
+    double res = sqrt(scalarVectorAndVector(N, vector, vector));
     return res;
 }
 

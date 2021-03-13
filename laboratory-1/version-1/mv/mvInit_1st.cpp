@@ -8,7 +8,7 @@ double* initMatrixA(int N){
         srand(i);
         for(size_t j = 0; j < N; ++j){
             if(i == j) {
-                mA[i*N + j] = rand() % 300 + 20001;
+                mA[i*N + j] = rand() % 300 + 1001;
             } else {
                 mA[i*N + j] = 999.0;
             }
