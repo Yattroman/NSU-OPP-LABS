@@ -1,6 +1,7 @@
 #include <cstring>
 #include "mvOperations_1st.h"
 
+/*
 void printMatrix(double* matrix, int N){
     for(size_t i = 0; i < N; ++i){
         for(size_t j = 0; j < N; ++j){
@@ -9,6 +10,7 @@ void printMatrix(double* matrix, int N){
         printf("\n");
     }
 }
+*/
 
 void printVector(double* vector, int N){
     for(size_t i = 0; i < N; ++i){

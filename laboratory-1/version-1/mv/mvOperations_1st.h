@@ -5,7 +5,7 @@
 #include <iostream>
 #include <cmath>
 
-void printMatrix(double* matrix, int N);
+/*void printMatrix(double* matrix, int N);*/
 void printVector(double * vector, int N);
 
 void mulMatrixAndVector(int N, const double* matrix, const double* vector, double * res);
