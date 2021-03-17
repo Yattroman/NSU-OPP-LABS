@@ -24,6 +24,7 @@ int main(int argc, char* argv[]){
     double* z[2];
     double* x[2];
 
+    #pragma omp parallel for
     for (int i = 0; i < 2; ++i) {
         r[i] = (double*) calloc(N, sizeof(double));
         z[i] = (double*) calloc(N, sizeof(double));
@@ -38,6 +39,7 @@ int main(int argc, char* argv[]){
 
     double* temp[4];
 
+    #pragma omp parallel for
     for (size_t ui = 0; ui < 4; ++ui) {
         temp[ui] = (double*) calloc(N, sizeof(double));
     }
@@ -89,10 +91,12 @@ int main(int argc, char* argv[]){
         std::cout << "There are no roots!\n";
     }
 
+    #pragma omp parallel for
     for (size_t ui = 0; ui < 4; ++ui) {
         free(temp[ui]);
     }
 
+    #pragma omp parallel for
     for (int i = 0; i < 2; ++i) {
         free(x[i]);
         free(z[i]);
