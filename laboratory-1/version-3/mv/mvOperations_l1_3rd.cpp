@@ -1,6 +1,6 @@
 #include <cstring>
 #include <mpi.h>
-#include "mvOperations_3rd.h"
+#include "mvOperations_l1_3rd.h"
 
 void printVector(const double* vector, int N, int procRank){
     printf("proc rank: %d. ", procRank);

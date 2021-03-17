@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(/usr/include/mpi/)
 
 set(LAB1V1_SOURCE laboratory-1/version-1/main.cpp laboratory-1/version-1/mv/mvInit_l1_1st.cpp laboratory-1/version-1/mv/mvOperations_l1_1st.cpp)
-set(LAB1V2_SOURCE laboratory-1/version-2/main.cpp laboratory-1/version-2/mv/mvInit_2nd.cpp laboratory-1/version-2/mv/mvOperations_2nd.cpp)
-set(LAB1V3_SOURCE laboratory-1/version-3/main.cpp laboratory-1/version-3/mv/mvInit_3rd.cpp laboratory-1/version-3/mv/mvOperations_3rd.cpp)
+set(LAB1V2_SOURCE laboratory-1/version-2/main.cpp laboratory-1/version-2/mv/mvInit_l1_2nd.cpp laboratory-1/version-2/mv/mvOperations_l1_2nd.cpp)
+set(LAB1V3_SOURCE laboratory-1/version-3/main.cpp laboratory-1/version-3/mv/mvInit_l1_3rd.cpp laboratory-1/version-3/mv/mvOperations_l1_3rd.cpp)
 
 set(LAB2V1_SOURCE laboratory-2/version-1/main.cpp laboratory-2/version-1/mv/mvInit_l2_1st.cpp laboratory-2/version-1/mv/mvOperations_l2_1st.cpp)
 set(LAB2V2_SOURCE laboratory-2/version-2/main.cpp laboratory-2/version-2/mv/mvInit_l2_2nd.cpp laboratory-2/version-2/mv/mvOperations_l2_2nd.cpp)
