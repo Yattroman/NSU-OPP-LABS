@@ -1,5 +1,5 @@
 #include <cstring>
-#include "mvOperations_1st.h"
+#include "mvOperations_l1_1st.h"
 
 /*
 void printMatrix(double* matrix, int N){
@@ -64,8 +64,6 @@ double vectorLength(int N, const double* vector){ // Memory OK
 
 void mulVectorAndScalar(int N, double scalar, const double* vector, double * res){
     for(size_t i = 0; i < N; ++i) {
-        for (size_t j = 0; j < N; ++j) {
-            res[j] = scalar * vector[j];
-        }
+        res[j] = scalar * vector[j];
     }
 }

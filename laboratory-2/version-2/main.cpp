@@ -1,8 +1,9 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
-#include "mv/mvOperations_l2_1st.h"
-#include "mv/mvInit_l2_1st.h"
+#include <omp.h>
+#include "mv/mvOperations_l2_2nd.h"
+#include "mv/mvInit_l2_2nd.h"
 
 #define EPSILON 1e-10
 #define ACCURACY 1e-10
@@ -11,15 +12,13 @@ int main(int argc, char* argv[]){
     int N = atoi(argv[1]);
     int repeats = 0;
 
-    struct timespec endt, startt;
-
     int growStatus = 0;
 
-    double* mA = initMatrixA(N);
+    double* mA = (double*) calloc(N*N, sizeof(double));
+    initMatrixA(N, mA);
 
-    double* vecB = initVectorB(N);
-
-    clock_gettime(CLOCK_MONOTONIC_RAW, &startt);
+    double* vecB = (double*) calloc(N, sizeof(double));
+    initVectorB(N, vecB);
 
     double* r[2];
     double* z[2];
@@ -89,10 +88,6 @@ int main(int argc, char* argv[]){
     } else {
         std::cout << "There are no roots!\n";
     }
-
-    clock_gettime(CLOCK_MONOTONIC_RAW, &endt);
-
-    std::cout << "Time taken: "<< endt.tv_sec - startt.tv_sec + ACCURACY*( endt.tv_nsec-startt.tv_nsec ) ;
 
     for (size_t ui = 0; ui < 4; ++ui) {
         free(temp[ui]);

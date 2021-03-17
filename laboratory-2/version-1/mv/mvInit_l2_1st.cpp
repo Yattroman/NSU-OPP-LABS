@@ -1,5 +1,5 @@
 #include <cstring>
-#include "mvInit_1st.h"
+#include "mvInit_l2_1st.h"
 
 double* initMatrixA(int N){
     double* mA = (double*) calloc(N*N, sizeof(double));

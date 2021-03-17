@@ -1,5 +1,5 @@
 #include <cstring>
-#include "mvOperations_1st.h"
+#include "mvOperations_l2_2nd.h"
 
 /*
 void printMatrix(double* matrix, int N){
@@ -20,12 +20,14 @@ void printVector(double* vector, int N){
 }
 
 void subVectorAndVector(int N, const double* vectorL, const double* vectorR, double * res){
+    #pragma omp parallel for
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] - vectorR[j];
     }
 }
 
 void sumVectorAndVector(int N, const double* vectorL, const double* vectorR, double * res){
+    #pragma omp parallel for
     for(size_t j = 0; j < N; ++j){
         res[j] = vectorL[j] + vectorR[j];
     }
@@ -43,6 +45,7 @@ void mulMatrixAndVector(int N, const double* matrix, const double* vector, doubl
 double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR){ // Memory OK
     double res = 0;
 
+    #pragma omp parallel for reduction (+: res)
     for(size_t i = 0; i < N; ++i) {
         res += vectorL[i] * vectorR[i];
     }
@@ -51,21 +54,12 @@ double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR
 }
 
 double vectorLength(int N, const double* vector){ // Memory OK
-    double res = 0;
-
-    for(size_t i = 0; i < N; ++i) {
-        res += vector[i] * vector[i];
-    }
-
-    res = sqrt(res);
-
-    return res;
+    return sqrt(scalarVectorAndVector(N, vector, vector));
 }
 
 void mulVectorAndScalar(int N, double scalar, const double* vector, double * res){
+    #pragma omp parallel for
     for(size_t i = 0; i < N; ++i) {
-        for (size_t j = 0; j < N; ++j) {
-            res[j] = scalar * vector[j];
-        }
+        res[i] = scalar * vector[i];
     }
 }
