@@ -49,31 +49,6 @@ void mulMatrixAndVector(int N, const double *matrix, const double *vector, doubl
     }
 }
 
-/*double scalarVectorAndVector(int N, const double *vectorL, const double *vectorR, double &resHolder) {
-    double tempRes = resHolder;
-
-#pragma omp for reduction(+: tempRes)
-    for (size_t i = 0; i < N; ++i) {
-        tempRes += vectorL[i] * vectorR[i];
-    }
-
-#pragma omp critical
-    std::cout << "resHolder: '" << resHolder << "' ";
-
-//    #pragma omp critical
-//    memcpy(&tempRes, &resHolder, sizeof(double) );
-//    tempRes = resHolder;
-
-//#pragma omp critical
-//    std::cout << "tempRes: '" << tempRes << "' ";
-//    std::cout << "resHolder: '" << resHolder << "' ";
-
-#pragma omp master
-    resHolder = 0;
-
-    return tempRes;
-}*/
-
 /*double vectorLength(int N, const double *vector, double &resHolder) {
     return sqrt(scalarVectorAndVector(N, vector, vector, resHolder));
 }*/
