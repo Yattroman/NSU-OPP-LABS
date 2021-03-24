@@ -53,24 +53,37 @@ int main(int argc, char *argv[]) {
 //        std::cout << scalarVectorAndVector(N, vecB, vecB, resHolder) << std::endl;
 //        std::cout << scalarVectorAndVector(N, vecB, vecB, resHolder) << std::endl;
 
+/*
+ * Scalar Mult Example
 #pragma omp for reduction(+: resHolder1, resHolder2)
         for (size_t i = 0; i < N; ++i) {
             resHolder1 += vecB[i] * vecB[i];
             resHolder2 += vecB[i] * vecB[i];
         }
 #pragma omp barrier
-#pragma omp critical
-        std::cout << "'" << resHolder1 << "'";
-#pragma omp critical
-        std::cout << "'" << resHolder2 << "'";
-#pragma omp barrier
 #pragma omp single
         {
             resHolder1 = 0;
             resHolder2 = 0;
         }
+*/
 
-//        printVector(r[0], N);
+/*
+ * Mult Matrix and Vector Example
+        for (size_t i = 0; i < N; ++i) {
+#pragma omp for reduction(+:resHolder1)
+            for (size_t j = 0; j < N; ++j) {
+                resHolder1 += mA[i * N + j] * r[0][j];
+            }
+#pragma omp barrier
+#pragma omp single
+            temp[0][i] = resHolder1;
+#pragma omp single
+            resHolder1 = 0;
+        }
+#pragma omp barrier
+ */
+
         /*while (1) {
             mulMatrixAndVector(N, mA, z[0], temp[0]);                      // Az(k)
             alpha[1] = scalarVectorAndVector(N, r[0], r[0])
