@@ -12,9 +12,8 @@ void mulMatrixAndVector(int N, const double* matrix, const double* vector, doubl
 
 void subVectorAndVector(int N, const double* vectorL, const double* vectorR, double * res);
 void sumVectorAndVector(int N, const double* vectorL, const double* vectorR, double * res);
-double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR);
-
-double vectorLength(int N, const double* vector);
+/*double scalarVectorAndVector(int N, const double* vectorL, const double* vectorR, double& resHolder);*/
+/*double vectorLength(int N, const double* vector, double& resHolder);*/
 
 void mulVectorAndScalar(int N, double scalar, const double* vector, double * res);
 

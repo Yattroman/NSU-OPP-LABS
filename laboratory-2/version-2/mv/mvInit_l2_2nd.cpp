@@ -2,6 +2,7 @@
 #include "mvInit_l2_2nd.h"
 
 void initMatrixA(int N, double* matrixA){
+    #pragma omp parallel for
     for(size_t i = 0; i < N; ++i){
         srand(i);
         for(size_t j = 0; j < N; ++j){
@@ -15,6 +16,7 @@ void initMatrixA(int N, double* matrixA){
 }
 
 void initVectorB(int N, double* vectorB){
+    #pragma omp parallel for
     for(size_t i = 0; i < N; ++i){
         srand(i);
         vectorB[i] = rand() % 300;
