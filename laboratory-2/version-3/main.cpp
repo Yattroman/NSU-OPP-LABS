@@ -125,21 +125,21 @@ int main(int argc, char *argv[]) {
                 resHolder3 += r[1][i] * r[1][i]; // |r(k+1)|
             }
 #pragma omp single
+            breakCondition = resHolder1 / resHolder2;
+
+            if (breakCondition < EPSILON) {    // |r(k)| / |b| < EPSILON
+                break;
+            }
+
+            if (growStatus > 10) {
+                break;
+            } else if (resHolder1 < resHolder3) {
+                growStatus++;
+            } else if (resHolder1 > resHolder3) {
+                growStatus = 0;
+            }
+#pragma omp single
             {
-                breakCondition = resHolder1 / resHolder2;
-
-                if (breakCondition < EPSILON) {    // |r(k)| / |b| < EPSILON
-                    break;
-                }
-
-                if (growStatus > 10) {
-                    break;
-                } else if (resHolder1 < resHolder3) {
-                    growStatus++;
-                } else if (resHolder1 > resHolder3) {
-                    growStatus = 0;
-                }
-
                 std::memcpy(x[0], x[1], N * sizeof(double));
                 std::memcpy(r[0], r[1], N * sizeof(double));
                 std::memcpy(z[0], z[1], N * sizeof(double));
@@ -151,28 +151,29 @@ int main(int argc, char *argv[]) {
                 ++repeats;
             }
         }
+    }
 
         if (growStatus <= 10) {
-//          printVector(x[1], N);
-//          printVector(vecB, N);
+          printVector(x[1], N);
+          printVector(vecB, N);
             std::cout << "Repeats in total: " << repeats << "\n";
         } else {
             std::cout << "There are no roots!\n";
-        }
-
-
-        for (size_t ui = 0; ui < 4; ++ui) {
-            free(temp[ui]);
-        }
-
-        for (size_t i = 0; i < 2; ++i) {
-            free(x[i]);
-            free(z[i]);
-            free(r[i]);
-        }
-
-        free(mA);
-        free(vecB);
-
-        return EXIT_SUCCESS;
     }
+
+
+    for (size_t ui = 0; ui < 4; ++ui) {
+        free(temp[ui]);
+    }
+
+    for (size_t i = 0; i < 2; ++i) {
+        free(x[i]);
+        free(z[i]);
+        free(r[i]);
+    }
+
+    free(mA);
+    free(vecB);
+
+    return EXIT_SUCCESS;
+}
