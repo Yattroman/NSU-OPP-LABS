@@ -2,9 +2,9 @@
 #include "mvInit_l2_3rd.h"
 
 void initMatrixA(int N, double* matrixA){
-    #pragma omp parallel for ordered
+    #pragma omp parallel
     for(size_t i = 0; i < N; ++i){
-//        srand(i);
+        srand(i);
         for(size_t j = 0; j < N; ++j){
             if(i == j) {
 //                matrixA[i*N + j] = rand() % 300 + 1001;
@@ -20,7 +20,7 @@ void initMatrixA(int N, double* matrixA){
 void initVectorB(int N, double* vectorB){
     #pragma omp parallel for ordered
     for(size_t i = 0; i < N; ++i){
-//        srand(i);
+        srand(i);
 //        vectorB[i] = rand() % 300;
         vectorB[i] = i;
     }
