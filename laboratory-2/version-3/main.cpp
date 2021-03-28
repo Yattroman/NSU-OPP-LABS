@@ -156,6 +156,7 @@ int main(int argc, char *argv[]) {
         if (growStatus <= 10) {
           printVector(x[1], N);
           printVector(vecB, N);
+          printMatrix(mA, N);
             std::cout << "Repeats in total: " << repeats << "\n";
         } else {
             std::cout << "There are no roots!\n";
