@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 
         while (1) {
             // Az(k)
-#pragma omp for reduction(+:resHolder1)
+#pragma omp for reduction(+:resHolder1) schedule(runtime)
             for (size_t i = 0; i < N; ++i) {
                 value = 0;
                 for (size_t j = 0; j < N; ++j) {
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
             }
 
             // alpha(k+1) = (r(k), r(k)) / (Az(k), z(k))
-#pragma omp for reduction(+: resHolder1, resHolder2)
+#pragma omp for reduction(+: resHolder1, resHolder2) schedule(runtime)
             for (size_t i = 0; i < N; ++i) {
                 resHolder1 += r[0][i] * r[0][i];
                 resHolder2 += temp[0][i] * z[0][i];
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
             subVectorAndVector(N, r[0], temp[2], r[1]);            // r(k+1) = r(k) - alpha(k+1)Az(k)
 
             // beta(k+1) = (r(k+1), r(k+1)) / (r(k), r(k))
-#pragma omp for reduction(+: resHolder1, resHolder2)
+#pragma omp for reduction(+: resHolder1, resHolder2) schedule(runtime)
             for (size_t i = 0; i < N; ++i) {
                 resHolder1 += r[1][i] * r[1][i];
                 resHolder2 += r[0][i] * r[0][i];
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
             mulVectorAndScalar(N, beta[1], z[0], temp[3]);
             sumVectorAndVector(N, r[1], temp[3], z[1]);            // z(k+1) = r(k+1) + beta(k+1)z(k)
 
-#pragma omp for reduction(+: resHolder1, resHolder2, resHolder3)
+#pragma omp for reduction(+: resHolder1, resHolder2, resHolder3) schedule(runtime)
             for (size_t i = 0; i < N; ++i) {
                 resHolder1 += r[0][i] * r[0][i]; // |r(k)|
                 resHolder2 += vecB[i] * vecB[i]; // |b|

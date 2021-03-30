@@ -18,21 +18,21 @@ void printVector(double *vector, int N) {
 }
 
 void subVectorAndVector(int N, const double *vectorL, const double *vectorR, double *res) {
-#pragma omp for
+#pragma omp for schedule(runtime)
     for (size_t j = 0; j < N; ++j) {
         res[j] = vectorL[j] - vectorR[j];
     }
 }
 
 void sumVectorAndVector(int N, const double *vectorL, const double *vectorR, double *res) {
-#pragma omp for
+#pragma omp for schedule(runtime)
     for (size_t j = 0; j < N; ++j) {
         res[j] = vectorL[j] + vectorR[j];
     }
 }
 
 void mulVectorAndScalar(int N, double scalar, const double *vector, double *res) {
-#pragma omp for
+#pragma omp for schedule(runtime)
     for (size_t i = 0; i < N; ++i) {
         res[i] = scalar * vector[i];
     }
