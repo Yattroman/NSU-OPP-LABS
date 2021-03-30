@@ -12,6 +12,8 @@ int main(int argc, char *argv[]) {
     int N = atoi(argv[1]);
     int repeats = 0;
 
+    struct timespec endt, startt;
+
     double breakCondition = 0;
 
     double resHolder1 = 0;
@@ -27,6 +29,8 @@ int main(int argc, char *argv[]) {
 
     double *vecB = (double *) calloc(N, sizeof(double));
     initVectorB(N, vecB);
+
+    clock_gettime(CLOCK_MONOTONIC_RAW, &startt);
 
     double *r[2];
     double *z[2];
@@ -52,20 +56,6 @@ int main(int argc, char *argv[]) {
 
 #pragma omp parallel shared(temp, r, z, x, resHolder1, resHolder2, mA, vecB, alpha, beta) private(value)
     {
-
-/*#pragma omp for reduction(+:resHolder1)
-        for (size_t i = 0; i < N; ++i) {
-            value = 0;
-            for (size_t j = 0; j < N; ++j) {
-                value += mA[i * N + j] * z[0][j];
-            }
-            resHolder1 += value;
-            temp[0][i] = resHolder1;
-
-            resHolder1 = 0;
-        }
-#pragma omp single
-        printVector(temp[0], N);*/
 
         while (1) {
             // Az(k)
@@ -155,12 +145,13 @@ int main(int argc, char *argv[]) {
 
         if (growStatus <= 10) {
           printVector(x[1], N);
-          printVector(vecB, N);
-          printMatrix(mA, N);
             std::cout << "Repeats in total: " << repeats << "\n";
         } else {
             std::cout << "There are no roots!\n";
     }
+
+    clock_gettime(CLOCK_MONOTONIC_RAW, &endt);
+    std::cout << "Time taken: "<< endt.tv_sec - startt.tv_sec + ACCURACY*( endt.tv_nsec-startt.tv_nsec ) ;
 
 
     for (size_t ui = 0; ui < 4; ++ui) {

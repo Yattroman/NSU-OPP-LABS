@@ -12,6 +12,8 @@ int main(int argc, char* argv[]){
     int N = atoi(argv[1]);
     int repeats = 0;
 
+    struct timespec endt, startt;
+
     int growStatus = 0;
 
     double* mA = (double*) calloc(N*N, sizeof(double));
@@ -19,6 +21,8 @@ int main(int argc, char* argv[]){
 
     double* vecB = (double*) calloc(N, sizeof(double));
     initVectorB(N, vecB);
+
+    clock_gettime(CLOCK_MONOTONIC_RAW, &startt);
 
     double* r[2];
     double* z[2];
@@ -91,12 +95,13 @@ int main(int argc, char* argv[]){
         std::cout << "There are no roots!\n";
     }
 
-    #pragma omp parallel for
+    clock_gettime(CLOCK_MONOTONIC_RAW, &endt);
+    std::cout << "Time taken: "<< endt.tv_sec - startt.tv_sec + ACCURACY*( endt.tv_nsec-startt.tv_nsec ) ;
+
     for (size_t ui = 0; ui < 4; ++ui) {
         free(temp[ui]);
     }
 
-    #pragma omp parallel for
     for (int i = 0; i < 2; ++i) {
         free(x[i]);
         free(z[i]);

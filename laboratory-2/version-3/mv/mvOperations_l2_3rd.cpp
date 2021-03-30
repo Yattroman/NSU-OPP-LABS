@@ -31,26 +31,6 @@ void sumVectorAndVector(int N, const double *vectorL, const double *vectorR, dou
     }
 }
 
-void mulMatrixAndVector(int N, const double *matrix, const double *vector, double *res) {
-    double tempRes;
-
-    for (size_t i = 0; i < N; ++i) {
-        tempRes = 0;
-#pragma omp for
-        for (size_t j = 0; j < N; ++j) {
-            tempRes += matrix[i * N + j] * vector[j];
-        }
-#pragma omp reduction(+:res[i])
-        {
-            res[i] += tempRes;
-        }
-    }
-}
-
-/*double vectorLength(int N, const double *vector, double &resHolder) {
-    return sqrt(scalarVectorAndVector(N, vector, vector, resHolder));
-}*/
-
 void mulVectorAndScalar(int N, double scalar, const double *vector, double *res) {
 #pragma omp for
     for (size_t i = 0; i < N; ++i) {

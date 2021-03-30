@@ -37,7 +37,7 @@ void mulMatrixAndVector(int N, const double* matrix, const double* vector, doubl
     #pragma omp parallel for
     for(size_t i = 0; i < N; ++i) {
         res[i] = 0;
-        #pragma omp parallel for
+        #pragma omp for
         for (size_t j = 0; j < N; ++j) {
             res[i] += matrix[i*N + j] * vector[j];
         }
