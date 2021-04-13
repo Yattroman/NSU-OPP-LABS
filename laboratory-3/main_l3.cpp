@@ -40,7 +40,7 @@ void initMatrixA(double* matrixA, int N1, int N2){
 void initMatrixB(double* matrixB, int N2, int N3){
     for (int i = 0; i < N2; ++i) {
         for (int j = 0; j < N3; ++j) {
-            matrixB[i*N3 + j] = 2;
+            matrixB[i*N3 + j] = i*N3 + j + 1;
         }
     }
 }
@@ -69,47 +69,51 @@ int main(int argc, char* argv[]){
     int N2 = atoi(argv[2]);
     int N3 = atoi(argv[3]);
 
-//    MPI_Datatype bMatColumn, bMatColumnType;
+    MPI_Datatype bMatColumn, bMatColumnType;
 //    MPI_Type_vector(); // N1 / p1
 
-//    MPI_Type_vector(N2, 1, N3/dims[1], MPI_DOUBLE, &bMatColumn);
-//    MPI_Type_commit(&bMatColumn);
-//    MPI_Type_create_resized(bMatColumn, 0, 1*sizeof(double), &bMatColumnType);
+    MPI_Type_vector(N3, 1, N3, MPI_DOUBLE, &bMatColumn);
+    MPI_Type_commit(&bMatColumn);
+    MPI_Type_create_resized(bMatColumn, 0, sizeof(double), &bMatColumnType);
+    MPI_Type_commit(&bMatColumnType);
 
     double* matrixA;
     double* matrixB;
     double* matrixC;
 
     double * matrixAPart = new double[N1*N2/dims[0]];
-//    double * matrixBPart = new double[N2*N3/dims[1]];
+    double * matrixBPart = new double[N2*N3/dims[1]];
 //    double * matrixCPart = new double[112]; // !!!
 
     if( procCoords[0] == 0 && procCoords[1] == 0 ){
         matrixA = new double[N1*N2];
-//        matrixB = new double[N2*N3];
+        matrixB = new double[N2*N3];
 
         initMatrixA(matrixA, N1, N2);
-//        initMatrixB(matrixB, N2, N3);
+        initMatrixB(matrixB, N2, N3);
 
-        printMatrix(matrixA, N1, N2);
+//        printMatrix(matrixA, N1, N2);
+        printMatrix(matrixB, N2, N3);
         cout << endl;
-//        printMatrix(matrixB, N2, N3);
     }
 
     fillXandYComms(yComms, xComms, comm2d);
     MPI_Scatter(matrixA, N1*N2/dims[0], MPI_DOUBLE, matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, yComms[0]);
-//    MPI_Scatter(matrixB, 1, bMatColumnType, matrixBPart, dims[1], MPI_DOUBLE, 0, xComms[0]);
+    MPI_Scatter(matrixB, N3/dims[1], bMatColumnType, matrixBPart, N3/dims[1], bMatColumnType, 0, xComms[0]);
 
-    if(procCoords[1] == 0) {
+//    for (int i = 0; i < dims[1]; ++i) {
+//        MPI_Bcast(matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, xComms[i]);
+//    }
+
+    if(procCoords[0] == 0) {
         cout << "Y: " << procCoords[0] << " " << "X: " << procCoords[1] << '\n';
         printMatrix(matrixAPart, N1 / dims[0], N2);
+        printMatrix(matrixBPart, N2, N3/dims[1]);
         cout << endl;
     }
 //    cout << N1/dims[0] << " " << N2;
-//    printMatrix(matrixAPart, N2, N3/dims[1]);
 
     MPI_Finalize();
 
     return EXIT_SUCCESS;
 }
-
