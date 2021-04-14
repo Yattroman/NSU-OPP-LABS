@@ -12,7 +12,7 @@ int isN1andN3SimilarP1andP2Respectively(int& N1, int& N3, int& p1, int& p2){
     return (N1%p1 + N3%p2 != 0) ? 0 : 1;
 }
 
-void fillXandYComms(MPI_Comm* yComms, MPI_Comm* xComms, MPI_Comm comm2d){
+void fillXandYComms(MPI_Comm* yComms, MPI_Comm* xComms, MPI_Comm comm2d) {
     int remainDimsY[2] = {true, false};
     int remainDimsX[2] = {false, true};
 
@@ -45,6 +45,27 @@ void initMatrixB(double* matrixB, int N2, int N3){
     }
 }
 
+void spreadMatrixAandB(int N1, int N2, int N3, double* matrixA, double* matrixB, double* matrixAPart, double* matrixBPart, int* dims, MPI_Comm* xComms, MPI_Comm* yComms, int* procCoords){
+    MPI_Datatype bMatColumn, bMatColumnType;
+
+    MPI_Type_vector(N2,    N3/dims[1], N3, MPI_DOUBLE, &bMatColumn);
+    MPI_Type_commit(&bMatColumn);
+    MPI_Type_create_resized(bMatColumn, 0, N3/dims[1]*sizeof(double), &bMatColumnType);
+    MPI_Type_commit(&bMatColumnType);
+
+    // Spread Matrix A on (y, 0)
+    MPI_Scatter(matrixA, N1*N2/dims[0], MPI_DOUBLE, matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, *yComms);
+
+    // Spread Matrix A from (y, 0) to (y, b)
+    MPI_Bcast(matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, *xComms);
+
+    // Spread Matrix B on (0, x)
+    MPI_Scatter(matrixB, 1, bMatColumnType, matrixBPart, N2*N3/dims[1], MPI_DOUBLE, 0, *xComms);
+
+    // Spread Matrix A from (0, x) to (a, x)
+    MPI_Bcast(matrixBPart, N2*N3/dims[1], MPI_DOUBLE, 0, *yComms);
+}
+
 int main(int argc, char* argv[]){
     int procSize;
 
@@ -62,20 +83,12 @@ int main(int argc, char* argv[]){
     MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &comm2d);
     MPI_Cart_get(comm2d, 2, dims, periods, procCoords);
 
-    MPI_Comm yComms[dims[1]];
-    MPI_Comm xComms[dims[0]];
+    MPI_Comm yComms[1];
+    MPI_Comm xComms[1];
 
     int N1 = atoi(argv[1]);
     int N2 = atoi(argv[2]);
     int N3 = atoi(argv[3]);
-
-    MPI_Datatype bMatColumn, bMatColumnType;
-//    MPI_Type_vector(); // N1 / p1
-
-    MPI_Type_vector(N2,    N3/dims[1], N3, MPI_DOUBLE, &bMatColumn);
-    MPI_Type_commit(&bMatColumn);
-    MPI_Type_create_resized(bMatColumn, 0, N3/dims[1]*sizeof(double), &bMatColumnType);
-    MPI_Type_commit(&bMatColumnType);
 
     double* matrixA;
     double* matrixB;
@@ -93,23 +106,20 @@ int main(int argc, char* argv[]){
         initMatrixB(matrixB, N2, N3);
 
 //        printMatrix(matrixA, N1, N2);
-        printMatrix(matrixB, N2, N3);
+//        printMatrix(matrixB, N2, N3);
+//        cout << sizeof(MPI_Comm) << " " << sizeof(xComms);
         cout << endl;
     }
 
     fillXandYComms(yComms, xComms, comm2d);
-    MPI_Scatter(matrixA, N1*N2/dims[0], MPI_DOUBLE, matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, yComms[0]);
-    MPI_Scatter(matrixB, 1, bMatColumnType, matrixBPart, N2*N3/dims[1], MPI_DOUBLE, 0, xComms[0]);
+    spreadMatrixAandB(N1, N2, N3, matrixA, matrixB, matrixAPart, matrixBPart, dims, xComms, yComms, procCoords);
 
-//    for (int i = 0; i < dims[1]; ++i) {
-//        MPI_Bcast(matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, xComms[i]);
-//    }
-
-    if(procCoords[0] == 0) {
+    if(procCoords[0] == 3) {
         cout << "Y: " << procCoords[0] << " " << "X: " << procCoords[1] << '\n';
 //        printMatrix(matrixAPart, N1 / dims[0], N2);
-        printMatrix(matrixBPart, N2, N3/dims[1]);
+//        printMatrix(matrixBPart, N2, N3/dims[1]);
         cout << endl;
+
     }
 //    cout << N1/dims[0] << " " << N2;
 
