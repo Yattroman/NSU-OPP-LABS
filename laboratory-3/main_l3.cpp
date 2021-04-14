@@ -72,9 +72,9 @@ int main(int argc, char* argv[]){
     MPI_Datatype bMatColumn, bMatColumnType;
 //    MPI_Type_vector(); // N1 / p1
 
-    MPI_Type_vector(N3, 1, N3, MPI_DOUBLE, &bMatColumn);
+    MPI_Type_vector(N2,    N3/dims[1], N3, MPI_DOUBLE, &bMatColumn);
     MPI_Type_commit(&bMatColumn);
-    MPI_Type_create_resized(bMatColumn, 0, sizeof(double), &bMatColumnType);
+    MPI_Type_create_resized(bMatColumn, 0, N3/dims[1]*sizeof(double), &bMatColumnType);
     MPI_Type_commit(&bMatColumnType);
 
     double* matrixA;
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]){
 
     fillXandYComms(yComms, xComms, comm2d);
     MPI_Scatter(matrixA, N1*N2/dims[0], MPI_DOUBLE, matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, yComms[0]);
-    MPI_Scatter(matrixB, N3/dims[1], bMatColumnType, matrixBPart, N3/dims[1], bMatColumnType, 0, xComms[0]);
+    MPI_Scatter(matrixB, 1, bMatColumnType, matrixBPart, N2*N3/dims[1], MPI_DOUBLE, 0, xComms[0]);
 
 //    for (int i = 0; i < dims[1]; ++i) {
 //        MPI_Bcast(matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, xComms[i]);
@@ -107,7 +107,7 @@ int main(int argc, char* argv[]){
 
     if(procCoords[0] == 0) {
         cout << "Y: " << procCoords[0] << " " << "X: " << procCoords[1] << '\n';
-        printMatrix(matrixAPart, N1 / dims[0], N2);
+//        printMatrix(matrixAPart, N1 / dims[0], N2);
         printMatrix(matrixBPart, N2, N3/dims[1]);
         cout << endl;
     }
