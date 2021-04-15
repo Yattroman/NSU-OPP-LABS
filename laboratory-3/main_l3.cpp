@@ -45,6 +45,17 @@ void initMatrixB(double* matrixB, int N2, int N3){
     }
 }
 
+void multiplyMatrixAandBParts(const double* matrixAPart, const double* matrixBPart, int n1, int n2, int n3, double* matrixCPart){
+    for (int i = 0; i < n1; ++i) {
+        for (int j = 0; j < n3; ++j) {
+            matrixCPart[i*n3 + j] = 0;
+            for (int k = 0; k < n2; ++k) {
+                matrixCPart[i*n3 + j] += matrixAPart[i*n2 + k] * matrixBPart[k*n3 + j];
+            }
+        }
+    }
+}
+
 void spreadMatrixAandB(int N1, int N2, int N3, double* matrixA, double* matrixB, double* matrixAPart, double* matrixBPart, int* dims, MPI_Comm* xComms, MPI_Comm* yComms, int* procCoords){
     MPI_Datatype bMatColumn, bMatColumnType;
 
@@ -96,23 +107,29 @@ int main(int argc, char* argv[]){
 
     double * matrixAPart = new double[N1*N2/dims[0]];
     double * matrixBPart = new double[N2*N3/dims[1]];
-//    double * matrixCPart = new double[112]; // !!!
+    double * matrixCPart = new double[N1*N2/dims[0] * N2*N3/dims[1]]; // !!!
 
     if( procCoords[0] == 0 && procCoords[1] == 0 ){
         matrixA = new double[N1*N2];
         matrixB = new double[N2*N3];
+        matrixC = new double[N1*N3];
 
         initMatrixA(matrixA, N1, N2);
         initMatrixB(matrixB, N2, N3);
 
-//        printMatrix(matrixA, N1, N2);
-//        printMatrix(matrixB, N2, N3);
+        printMatrix(matrixA, N1, N2);
+        cout << endl;
+        printMatrix(matrixB, N2, N3);
 //        cout << sizeof(MPI_Comm) << " " << sizeof(xComms);
         cout << endl;
     }
 
     fillXandYComms(yComms, xComms, comm2d);
     spreadMatrixAandB(N1, N2, N3, matrixA, matrixB, matrixAPart, matrixBPart, dims, xComms, yComms, procCoords);
+//    multiplyMatrixAandBParts(matrixAPart, matrixBPart, N1/dims[0], N2, N3/dims[1], matrixCPart);
+    multiplyMatrixAandBParts(matrixA, matrixB, N1, N2, N3, matrixC);
+
+    printMatrix(matrixC, N1, N3);
 
     if(procCoords[0] == 3) {
         cout << "Y: " << procCoords[0] << " " << "X: " << procCoords[1] << '\n';
