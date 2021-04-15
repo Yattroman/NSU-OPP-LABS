@@ -45,6 +45,17 @@ void initMatrixB(double* matrixB, int N2, int N3){
     }
 }
 
+void collectMatrixCParts(double* matrixCPart, int n1, int n3, int N1, int N3, double* matrixC, MPI_Comm& comm2d){
+    MPI_Datatype cMatBlock, cMatBlockType;
+
+    MPI_Type_vector(n1, n3, N3, MPI_DOUBLE, &cMatBlock);
+    MPI_Type_commit(&cMatBlock);
+    MPI_Type_create_resized(cMatBlock, 0,n3*sizeof(double), &cMatBlockType);
+    MPI_Type_commit(&cMatBlockType);
+
+    MPI_Gather(matrixCPart, n1*n3, MPI_DOUBLE, matrixC, 1, cMatBlockType, 0, comm2d);
+}
+
 void multiplyMatrixAandBParts(const double* matrixAPart, const double* matrixBPart, int n1, int n2, int n3, double* matrixCPart){
     for (int i = 0; i < n1; ++i) {
         for (int j = 0; j < n3; ++j) {
@@ -117,27 +128,31 @@ int main(int argc, char* argv[]){
         initMatrixA(matrixA, N1, N2);
         initMatrixB(matrixB, N2, N3);
 
-        printMatrix(matrixA, N1, N2);
-        cout << endl;
-        printMatrix(matrixB, N2, N3);
+//        printMatrix(matrixA, N1, N2);
+//        cout << endl;
+//        printMatrix(matrixB, N2, N3);
 //        cout << sizeof(MPI_Comm) << " " << sizeof(xComms);
         cout << endl;
     }
 
     fillXandYComms(yComms, xComms, comm2d);
     spreadMatrixAandB(N1, N2, N3, matrixA, matrixB, matrixAPart, matrixBPart, dims, xComms, yComms, procCoords);
-//    multiplyMatrixAandBParts(matrixAPart, matrixBPart, N1/dims[0], N2, N3/dims[1], matrixCPart);
-    multiplyMatrixAandBParts(matrixA, matrixB, N1, N2, N3, matrixC);
+    multiplyMatrixAandBParts(matrixAPart, matrixBPart, N1/dims[0], N2, N3/dims[1], matrixCPart);
+    collectMatrixCParts(matrixCPart, N1/dims[0], N3/dims[1], N1, N3, matrixC, comm2d);
 
-    printMatrix(matrixC, N1, N3);
 
-    if(procCoords[0] == 3) {
-        cout << "Y: " << procCoords[0] << " " << "X: " << procCoords[1] << '\n';
+    if(procCoords[0] == 0 && procCoords[1] == 0){
+        printMatrix(matrixC, N1, N3);
+    }
+
+//    if(procCoords[0] == 0) {
+//        cout << "Y: " << procCoords[0] << " " << "X: " << procCoords[1] << '\n';
 //        printMatrix(matrixAPart, N1 / dims[0], N2);
 //        printMatrix(matrixBPart, N2, N3/dims[1]);
-        cout << endl;
+//        printMatrix(matrixCPart, N1/dims[0], N3/dims[1]);
+//        cout << endl;
 
-    }
+//    }
 //    cout << N1/dims[0] << " " << N2;
 
     MPI_Finalize();
