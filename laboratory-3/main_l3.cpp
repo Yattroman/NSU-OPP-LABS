@@ -8,6 +8,24 @@
 
 using namespace std;
 
+void fillDisplsAndRecvcountsTables(int* displs, int* recvcounts, int n1, int n3, int N3, int* dims, int procSize){
+    int temp = 0;
+    int currentStart = 0;
+    for (int i = 1; i < procSize; ++i) {
+        if (i % dims[1] != 0){
+            temp = currentStart + (i % dims[1])*n3;
+            displs[i] = temp;
+        } else {
+            temp = N3*n1*(i / dims[1]);
+            currentStart = temp;
+            displs[i] = temp;
+        }
+        recvcounts[i] = 1;
+    }
+    displs[0] = 0;
+    recvcounts[0] = 1;
+}
+
 int isN1andN3SimilarP1andP2Respectively(int& N1, int& N3, int& p1, int& p2){
     return (N1%p1 + N3%p2 != 0) ? 0 : 1;
 }
@@ -45,15 +63,15 @@ void initMatrixB(double* matrixB, int N2, int N3){
     }
 }
 
-void collectMatrixCParts(double* matrixCPart, int n1, int n3, int N1, int N3, double* matrixC, MPI_Comm& comm2d){
+void collectMatrixCParts(double* matrixCPart, int n1, int n3, int N3, double* matrixC, int* displs, int* recvcounts, MPI_Comm& comm2d){
     MPI_Datatype cMatBlock, cMatBlockType;
 
     MPI_Type_vector(n1, n3, N3, MPI_DOUBLE, &cMatBlock);
     MPI_Type_commit(&cMatBlock);
-    MPI_Type_create_resized(cMatBlock, 0,n3*sizeof(double), &cMatBlockType);
+    MPI_Type_create_resized(cMatBlock, 0,sizeof(double), &cMatBlockType);
     MPI_Type_commit(&cMatBlockType);
 
-    MPI_Gather(matrixCPart, n1*n3, MPI_DOUBLE, matrixC, 1, cMatBlockType, 0, comm2d);
+    MPI_Gatherv(matrixCPart, n1*n3, MPI_DOUBLE, matrixC, recvcounts, displs, cMatBlockType, 0, comm2d);
 }
 
 void multiplyMatrixAandBParts(const double* matrixAPart, const double* matrixBPart, int n1, int n2, int n3, double* matrixCPart){
@@ -101,6 +119,9 @@ int main(int argc, char* argv[]){
     int procCoords[DIMENSION];
     int reorder = 1;
 
+    int recvcounts[procSize];
+    int displs[procSize];
+
     MPI_Dims_create(procSize, 2, dims);
     MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &comm2d);
     MPI_Cart_get(comm2d, 2, dims, periods, procCoords);
@@ -118,7 +139,9 @@ int main(int argc, char* argv[]){
 
     double * matrixAPart = new double[N1*N2/dims[0]];
     double * matrixBPart = new double[N2*N3/dims[1]];
-    double * matrixCPart = new double[N1*N2/dims[0] * N2*N3/dims[1]]; // !!!
+    double * matrixCPart = new double[N1/dims[0] * N3/dims[1]];
+
+    fillDisplsAndRecvcountsTables(displs, recvcounts, N1/dims[0], N3/dims[1], N3, dims, procSize);
 
     if( procCoords[0] == 0 && procCoords[1] == 0 ){
         matrixA = new double[N1*N2];
@@ -138,11 +161,15 @@ int main(int argc, char* argv[]){
     fillXandYComms(yComms, xComms, comm2d);
     spreadMatrixAandB(N1, N2, N3, matrixA, matrixB, matrixAPart, matrixBPart, dims, xComms, yComms, procCoords);
     multiplyMatrixAandBParts(matrixAPart, matrixBPart, N1/dims[0], N2, N3/dims[1], matrixCPart);
-    collectMatrixCParts(matrixCPart, N1/dims[0], N3/dims[1], N1, N3, matrixC, comm2d);
-
+    collectMatrixCParts(matrixCPart, N1/dims[0], N3/dims[1], N3, matrixC, displs, recvcounts, comm2d);
 
     if(procCoords[0] == 0 && procCoords[1] == 0){
         printMatrix(matrixC, N1, N3);
+//        printMatrix(matrixCPart, N1/dims[0], N3/dims[1]);
+//        for (int i = 0; i < procSize; ++i) {
+//            cout << displs[i] << " ";
+//        }
+//        cout << endl << N1/dims[0] << " " << N3/dims[1] << " " << N1 << " " << N3;
     }
 
 //    if(procCoords[0] == 0) {
