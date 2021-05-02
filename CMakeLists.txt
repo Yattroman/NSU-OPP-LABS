@@ -17,4 +17,6 @@ set(LAB2V3_SOURCE laboratory-2/version-3/main.cpp laboratory-2/version-3/mv/mvIn
 
 set(LAB3_SOURCE laboratory-3/main_l3.cpp)
 
-add_executable(laboratory-3 ${LAB3_SOURCE})
+set(LAB4_SOURCE laboratory-4/main_l4.cpp)
+
+add_executable(laboratory-4 ${LAB4_SOURCE})
