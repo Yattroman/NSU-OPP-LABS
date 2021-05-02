@@ -2,8 +2,6 @@
 #include <cstdlib>
 #include <iostream>
 
-#define P1 3
-#define P2 2
 #define DIMENSION 2
 
 using namespace std;
@@ -94,13 +92,15 @@ void spreadMatrixAandB(int N1, int N2, int N3, double* matrixA, double* matrixB,
     MPI_Type_commit(&bMatColumnType);
 
     // Spread Matrix A on (y, 0)
-    MPI_Scatter(matrixA, N1*N2/dims[0], MPI_DOUBLE, matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, *yComms);
+    if(procCoords[1] == 0)
+        MPI_Scatter(matrixA, N1*N2/dims[0], MPI_DOUBLE, matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, *yComms);
 
     // Spread Matrix A from (y, 0) to (y, b)
     MPI_Bcast(matrixAPart, N1*N2/dims[0], MPI_DOUBLE, 0, *xComms);
 
     // Spread Matrix B on (0, x)
-    MPI_Scatter(matrixB, 1, bMatColumnType, matrixBPart, N2*N3/dims[1], MPI_DOUBLE, 0, *xComms);
+    if(procCoords[0] == 0)
+        MPI_Scatter(matrixB, 1, bMatColumnType, matrixBPart, N2*N3/dims[1], MPI_DOUBLE, 0, *xComms);
 
     // Spread Matrix A from (0, x) to (a, x)
     MPI_Bcast(matrixBPart, N2*N3/dims[1], MPI_DOUBLE, 0, *yComms);
@@ -122,20 +122,28 @@ int main(int argc, char* argv[]){
     int recvcounts[procSize];
     int displs[procSize];
 
-    MPI_Dims_create(procSize, 2, dims);
+    double startTime = MPI_Wtime();
+
+    int N1 = atoi(argv[1]);
+    int N2 = atoi(argv[2]);
+    int N3 = atoi(argv[3]);
+
+    dims[0] = atoi(argv[4]);
+    dims[1] = atoi(argv[5]);
+
     MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &comm2d);
     MPI_Cart_get(comm2d, 2, dims, periods, procCoords);
 
     MPI_Comm yComms[1];
     MPI_Comm xComms[1];
 
-    int N1 = atoi(argv[1]);
-    int N2 = atoi(argv[2]);
-    int N3 = atoi(argv[3]);
+    double* matrixA = NULL;
+    double* matrixB = NULL;
+    double* matrixC = NULL;
 
-    double* matrixA;
-    double* matrixB;
-    double* matrixC;
+    matrixA = new double[N1*N2];
+    matrixB = new double[N2*N3];
+    matrixC = new double[N1*N3];
 
     double * matrixAPart = new double[N1*N2/dims[0]];
     double * matrixBPart = new double[N2*N3/dims[1]];
@@ -144,18 +152,12 @@ int main(int argc, char* argv[]){
     fillDisplsAndRecvcountsTables(displs, recvcounts, N1/dims[0], N3/dims[1], N3, dims, procSize);
 
     if( procCoords[0] == 0 && procCoords[1] == 0 ){
-        matrixA = new double[N1*N2];
-        matrixB = new double[N2*N3];
-        matrixC = new double[N1*N3];
+//        matrixA = new double[N1*N2];
+//        matrixB = new double[N2*N3];
+//        matrixC = new double[N1*N3];
 
         initMatrixA(matrixA, N1, N2);
         initMatrixB(matrixB, N2, N3);
-
-//        printMatrix(matrixA, N1, N2);
-//        cout << endl;
-//        printMatrix(matrixB, N2, N3);
-//        cout << sizeof(MPI_Comm) << " " << sizeof(xComms);
-        cout << endl;
     }
 
     fillXandYComms(yComms, xComms, comm2d);
@@ -163,24 +165,12 @@ int main(int argc, char* argv[]){
     multiplyMatrixAandBParts(matrixAPart, matrixBPart, N1/dims[0], N2, N3/dims[1], matrixCPart);
     collectMatrixCParts(matrixCPart, N1/dims[0], N3/dims[1], N3, matrixC, displs, recvcounts, comm2d);
 
+    double endTime = MPI_Wtime();
+
     if(procCoords[0] == 0 && procCoords[1] == 0){
         printMatrix(matrixC, N1, N3);
-//        printMatrix(matrixCPart, N1/dims[0], N3/dims[1]);
-//        for (int i = 0; i < procSize; ++i) {
-//            cout << displs[i] << " ";
-//        }
-//        cout << endl << N1/dims[0] << " " << N3/dims[1] << " " << N1 << " " << N3;
+        std::cout << "Time taken: " << endTime - startTime;
     }
-
-//    if(procCoords[0] == 0) {
-//        cout << "Y: " << procCoords[0] << " " << "X: " << procCoords[1] << '\n';
-//        printMatrix(matrixAPart, N1 / dims[0], N2);
-//        printMatrix(matrixBPart, N2, N3/dims[1]);
-//        printMatrix(matrixCPart, N1/dims[0], N3/dims[1]);
-//        cout << endl;
-
-//    }
-//    cout << N1/dims[0] << " " << N2;
 
     MPI_Finalize();
 
