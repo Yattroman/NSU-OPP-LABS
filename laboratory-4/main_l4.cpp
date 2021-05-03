@@ -21,6 +21,14 @@
 
 using namespace std;
 
+int isVld(int value, int limit, int addition){
+    if(value + addition < 0 || value + addition >= limit){
+        return 0;
+    }
+
+    return 1;
+}
+
 void calculatePhiArguments(int i, int j, int k, double &x, double &y, double &z, const double &Hx, const double &Hy, const double &Hz){
     x = X0 + i*Hx;
     y = Y0 + j*Hy;
@@ -75,21 +83,56 @@ char calculateCompleteCondition(double ** phiValuesPart,  const double& Hx, cons
 
 void calculateMPlusOnePhiValue(double ** phiValuesPart, int NxPart, int NyPart, int NzPart, const double& Hx, const double& Hy, const double& Hz){
     int NzAddition = NzPart % 2;
-    double medianValueZ = NzPart / 2 + NzAddition;
+    int medValZ = NzPart / 2 + NzAddition;
     double a[4];
+    double b[4];
 
     double denominator = 1 / ( 2/Hx*Hx + 2/Hy*Hy + 2/Hz*Hz + A );
 
+    double x, y, z;
+
     if(NzAddition == 1) {
         // NzPart mod 2 = 1
-        for(int k = medianValueZ; k < NzPart; ++k){
-            for (int i = 0; i < NyPart; ++i) {
-                for (int j = 0; j < NxPart; ++j) {
-                    a[0] = 1;
-                    a[1] = 1;
-                    a[2] = 1;
-                    a[3] = 1;
-                    phiValuesPart[1][j + i*NxPart + k*NxPart*NyPart] = (a[0] + a[1] + a[2] + a[3]) / denominator;
+        for(int k = 0; k < medValZ; ++k){
+            for (int j = 0; j < NyPart; ++j) {
+                for (int i = 0; i < NxPart; ++i) {
+                    // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
+                    a[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ+k)*NxPart*NyPart]
+                            + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ+k)*NxPart*NyPart];
+
+                    // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
+                    a[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ+k)*NxPart*NyPart]
+                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ+k)*NxPart*NyPart];
+
+                    // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
+                    a[2] = isVld(medValZ+k, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ+k+1)*NxPart*NyPart]
+                           + isVld(medValZ+k, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ+k-1)*NxPart*NyPart];
+
+                    // ro_{i, j, k}
+                    calculatePhiArguments(i, j, medValZ+k, x, y, z, Hx, Hy, Hz);
+                    a[3] = ro(phi(x, y, z));
+
+                    // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
+                    b[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ-k)*NxPart*NyPart]
+                           + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ-k)*NxPart*NyPart];
+
+                    // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
+                    b[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ-k)*NxPart*NyPart]
+                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ-k)*NxPart*NyPart];
+
+                    // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
+                    b[2] = isVld(medValZ-k, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ-k+1)*NxPart*NyPart]
+                           + isVld(medValZ-k, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ-k-1)*NxPart*NyPart];
+
+                    // ro_{i, j, k}
+                    calculatePhiArguments(i, j, medValZ-k, x, y, z, Hx, Hy, Hz);
+                    b[3] = ro(phi(x, y, z));
+
+                    // phi[M+1]_{i, j, k}
+                    phiValuesPart[1][j + i*NxPart + (medValZ+k)*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
+
+                    // phi[M+1]_{i, j, k}
+                    phiValuesPart[1][j + i*NxPart + (medValZ-k)*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
                 }
             }
         }
@@ -114,6 +157,8 @@ int main(){
     double Hx = DX / (Nx - 1);
     double Hy = DY / (Ny - 1);
     double Hz = DZ / (Nz - 1);
+
+    double phiMaxValue[2];
 
     double * phiSolid = new double[Nx*Ny*Nz];
 
