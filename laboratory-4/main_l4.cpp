@@ -21,7 +21,7 @@
 
 using namespace std;
 
-void calculatePhiArguments(int i, int j, int k, int &x, int &y, int &z, const int &Hx, const int &Hy, const int &Hz){
+void calculatePhiArguments(int i, int j, int k, double &x, double &y, double &z, const double &Hx, const double &Hy, const double &Hz){
     x = X0 + i*Hx;
     y = Y0 + j*Hy;
     z = Z0 + k*Hz;
@@ -35,10 +35,10 @@ double phi(double x, double y, double z){
     return x*x + y*y + z*z;
 }
 
-void fillStartPhiValues(double ** phiSolid, int Nx, int Ny, int Nz, const int& Hx, const int& Hy, const int& Hz){
-    memset(phiSolid[0], 0, Nx*Ny*Nz);
+void fillStartPhiValues(double * phiSolid, int Nx, int Ny, int Nz, const double& Hx, const double& Hy, const double& Hz){
+    memset(phiSolid, 0, Nx*Ny*Nz);
 
-    int x, y, z;
+    double x, y, z;
 
     int marginalValues[2] = {0, 1};
 
@@ -47,7 +47,7 @@ void fillStartPhiValues(double ** phiSolid, int Nx, int Ny, int Nz, const int& H
         for (int i1 = 0; i1 < Ny; ++i1) {
             for (int i2 = 0; i2 < Nx; ++i2) {
                 calculatePhiArguments(i2, i1, Nz-1, x, y, z, Hx, Hy, Hz);
-                phiSolid[0][i1*Nx + i2 + marginalValues[s]*(Nz-1)*Nx*Ny] = phi(x, y, z);
+                phiSolid[i1*Nx + i2 + marginalValues[s]*(Nz-1)*Nx*Ny] = phi(x, y, z);
             }
         }
 
@@ -55,7 +55,7 @@ void fillStartPhiValues(double ** phiSolid, int Nx, int Ny, int Nz, const int& H
         for (int i1 = 0; i1 < Nz; ++i1) {
             for (int i2 = 0; i2 < Nx; ++i2) {
                 calculatePhiArguments(i2, Ny-1, i1, x, y, z, Hx, Hy, Hz);
-                phiSolid[0][i1*Nx*Ny + i2 + marginalValues[s]*(Ny-1)*Nx] = phi(x, y, z);
+                phiSolid[i1*Nx*Ny + i2 + marginalValues[s]*(Ny-1)*Nx] = phi(x, y, z);
             }
         }
 
@@ -63,27 +63,44 @@ void fillStartPhiValues(double ** phiSolid, int Nx, int Ny, int Nz, const int& H
         for (int i1 = 0; i1 < Nz; ++i1) {
             for (int i2 = 0; i2 < Ny; ++i2) {
                 calculatePhiArguments(Nx-1, i2, i1, x, y, z, Hx, Hy, Hz);
-                phiSolid[0][i1*Nx*Ny + i2*Nx + marginalValues[s]*(Nx-1)] = phi(x, y, z);
+                phiSolid[i1*Nx*Ny + i2*Nx + marginalValues[s]*(Nx-1)] = phi(x, y, z);
             }
         }
     }
 }
 
-char calculateCompleteCondition(){
+char calculateCompleteCondition(double ** phiValuesPart,  const double& Hx, const double& Hy, const double& Hz){
 
 }
 
-void calculateMarginalPhiValues(){
+void calculateMPlusOnePhiValue(double ** phiValuesPart, int NxPart, int NyPart, int NzPart, const double& Hx, const double& Hy, const double& Hz){
+    int NzAddition = NzPart % 2;
+    double medianValueZ = NzPart / 2 + NzAddition;
+    double a[4];
 
-}
+    double denominator = 1 / ( 2/Hx*Hx + 2/Hy*Hy + 2/Hz*Hz + A );
 
-void calculateNextPhiValue(double ** phiPart, int NxPart, int NyPart, int NzPart, int procSize){
-    double medianValue[3]; // z - med, y - startValue, x - startValue
+    if(NzAddition == 1) {
+        // NzPart mod 2 = 1
+        for(int k = medianValueZ; k < NzPart; ++k){
+            for (int i = 0; i < NyPart; ++i) {
+                for (int j = 0; j < NxPart; ++j) {
+                    a[0] = 1;
+                    a[1] = 1;
+                    a[2] = 1;
+                    a[3] = 1;
+                    phiValuesPart[1][j + i*NxPart + k*NxPart*NyPart] = (a[0] + a[1] + a[2] + a[3]) / denominator;
+                }
+            }
+        }
+    } else {
+        // NzPart mod 2 = 0
+
+    }
 }
 
 int main(){
-    double * phiPart[2]; // 0 ~ phiPart[0], 1 ~ phiPart[1]
-    double * phiMarginalValues[2];
+    double * phiValuesPart[2]; // 0 ~ phiPart[0], 1 ~ phiPart[1]
 
     int procCount = 1;
     int procRank = 1;
@@ -93,8 +110,6 @@ int main(){
     int Nz = START_VALUE_N;
 
     int NxPart = Nx / procCount;
-    int NyPart = Ny / procCount;
-    int NzPart = Nz / procCount;
 
     double Hx = DX / (Nx - 1);
     double Hy = DY / (Ny - 1);
@@ -102,10 +117,17 @@ int main(){
 
     double * phiSolid = new double[Nx*Ny*Nz];
 
-    for(auto & i : phiPart) {
-        i = new double[NxPart*NyPart*NzPart];
+    for(auto & i : phiValuesPart) {
+        i = new double[NxPart*Ny*Nz];
     }
 
     fillStartPhiValues(phiSolid, Nx, Ny, Nz, Hx, Hy, Hz);
+
+    /*for (int i = 0; i < Ny; ++i) {
+        for (int j = 0; j < Nx; ++j) {
+            cout << phiSolid[i*Ny + j + (Nz-2)*Nx*Nz] << " ";
+        }
+        cout << endl;
+    }*/
 
 }
