@@ -97,8 +97,53 @@ void calculateMPlusOnePhiValue(double ** phiValuesPart, int NxPart, int NyPart, 
             for (int j = 0; j < NyPart; ++j) {
                 for (int i = 0; i < NxPart; ++i) {
                     // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
+                    a[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ-1+k)*NxPart*NyPart]
+                            + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ-1+k)*NxPart*NyPart];
+
+                    // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
+                    a[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ-1+k)*NxPart*NyPart]
+                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ-1+k)*NxPart*NyPart];
+
+                    // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
+                    a[2] = isVld(medValZ-1+k, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ-1+k+1)*NxPart*NyPart]
+                           + isVld(medValZ-1+k, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ-1+k-1)*NxPart*NyPart];
+
+                    // ro_{i, j, k}
+                    calculatePhiArguments(i, j, medValZ-1+k, x, y, z, Hx, Hy, Hz);
+                    a[3] = ro(phi(x, y, z));
+
+                    // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
+                    b[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ-1-k)*NxPart*NyPart]
+                           + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ-1-k)*NxPart*NyPart];
+
+                    // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
+                    b[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ-1-k)*NxPart*NyPart]
+                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ-1-k)*NxPart*NyPart];
+
+                    // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
+                    b[2] = isVld(medValZ-1-k, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ-1-k+1)*NxPart*NyPart]
+                           + isVld(medValZ-1-k, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ-1-k-1)*NxPart*NyPart];
+
+                    // ro_{i, j, k}
+                    calculatePhiArguments(i, j, medValZ-1-k, x, y, z, Hx, Hy, Hz);
+                    b[3] = ro(phi(x, y, z));
+
+                    // phi[M+1]_{i, j, k}
+                    phiValuesPart[1][j + i*NxPart + (medValZ-1+k)*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
+
+                    // phi[M+1]_{i, j, k}
+                    phiValuesPart[1][j + i*NxPart + (medValZ-1-k)*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
+                }
+            }
+        }
+    } else {
+        // NzPart mod 2 = 0
+        for(int k = 0; k < medValZ; ++k){
+            for (int j = 0; j < NyPart; ++j) {
+                for (int i = 0; i < NxPart; ++i) {
+                    // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
                     a[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ+k)*NxPart*NyPart]
-                            + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ+k)*NxPart*NyPart];
+                           + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ+k)*NxPart*NyPart];
 
                     // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
                     a[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ+k)*NxPart*NyPart]
@@ -113,32 +158,29 @@ void calculateMPlusOnePhiValue(double ** phiValuesPart, int NxPart, int NyPart, 
                     a[3] = ro(phi(x, y, z));
 
                     // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
-                    b[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ-k)*NxPart*NyPart]
-                           + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ-k)*NxPart*NyPart];
+                    b[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ-k-1)*NxPart*NyPart]
+                           + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ-k-1)*NxPart*NyPart];
 
                     // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
-                    b[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ-k)*NxPart*NyPart]
-                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ-k)*NxPart*NyPart];
+                    b[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ-k-1)*NxPart*NyPart]
+                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ-k-1)*NxPart*NyPart];
 
                     // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
-                    b[2] = isVld(medValZ-k, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ-k+1)*NxPart*NyPart]
-                           + isVld(medValZ-k, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ-k-1)*NxPart*NyPart];
+                    b[2] = isVld(medValZ-k-1, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ-k-1+1)*NxPart*NyPart]
+                           + isVld(medValZ-k-1, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ-k-1-1)*NxPart*NyPart];
 
                     // ro_{i, j, k}
-                    calculatePhiArguments(i, j, medValZ-k, x, y, z, Hx, Hy, Hz);
+                    calculatePhiArguments(i, j, medValZ-k-1, x, y, z, Hx, Hy, Hz);
                     b[3] = ro(phi(x, y, z));
 
                     // phi[M+1]_{i, j, k}
                     phiValuesPart[1][j + i*NxPart + (medValZ+k)*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
 
                     // phi[M+1]_{i, j, k}
-                    phiValuesPart[1][j + i*NxPart + (medValZ-k)*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
+                    phiValuesPart[1][j + i*NxPart + (medValZ-k-1)*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
                 }
             }
         }
-    } else {
-        // NzPart mod 2 = 0
-
     }
 }
 
