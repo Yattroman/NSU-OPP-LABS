@@ -43,24 +43,27 @@ void fillStartPhiValues(double ** phiSolid, int Nx, int Ny, int Nz, const int& H
     int marginalValues[2] = {0, 1};
 
     for (int s = 0; s < 2; ++s) {
+        // phi(xi, yj, 1), phi(xi, yj, -1)
         for (int i1 = 0; i1 < Ny; ++i1) {
             for (int i2 = 0; i2 < Nx; ++i2) {
-                calculatePhiArguments(i2, i1, marginalValues[s], x, y, z, Hx, Hy, Hz);
-                phiSolid[0][i1*Ny + i2] = phi(x, y, z);
+                calculatePhiArguments(i2, i1, Nz-1, x, y, z, Hx, Hy, Hz);
+                phiSolid[0][i1*Nx + i2 + marginalValues[s]*(Nz-1)*Nx*Ny] = phi(x, y, z);
             }
         }
 
+        // phi(xi, 1, zk), phi(xi, -1, zk)
         for (int i1 = 0; i1 < Nz; ++i1) {
             for (int i2 = 0; i2 < Nx; ++i2) {
-                calculatePhiArguments(i2, marginalValues[s], i1, x, y, z, Hx, Hy, Hz);
-                phiSolid[0][i1*Nz + i2] = phi(x, y, z);
+                calculatePhiArguments(i2, Ny-1, i1, x, y, z, Hx, Hy, Hz);
+                phiSolid[0][i1*Nx*Ny + i2 + marginalValues[s]*(Ny-1)*Nx] = phi(x, y, z);
             }
         }
 
+        // phi(1, yj, zk), phi(-1, yj, zk)
         for (int i1 = 0; i1 < Nz; ++i1) {
             for (int i2 = 0; i2 < Ny; ++i2) {
-                calculatePhiArguments(marginalValues[s], i2, i1, x, y, z, Hx, Hy, Hz);
-                phiSolid[0][i1*Nz + i2] = phi(x, y, z);
+                calculatePhiArguments(Nx-1, i2, i1, x, y, z, Hx, Hy, Hz);
+                phiSolid[0][i1*Nx*Ny + i2*Nx + marginalValues[s]*(Nx-1)] = phi(x, y, z);
             }
         }
     }
