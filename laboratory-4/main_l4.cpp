@@ -3,21 +3,23 @@
 #include "mpi.h"
 
 #define EPSILON 1e-10
+#define MAX_DIFF_DELTA 1e2
+
 #define A 1e5
-#define START_VALUE_N 8
+#define START_VALUE_N 11
 
-#define X0 -1
-#define XNX 1
+#define X0 -1.0
+#define XNX 1.0
 
-#define Y0 -1
-#define YNY 1
+#define Y0 -1.0
+#define YNY 1.0
 
-#define Z0 -1
-#define ZNY 1
+#define Z0 -1.0
+#define ZNZ 1.0
 
-#define DX 2
-#define DY 2
-#define DZ 2
+#define DX XNX - X0
+#define DY YNY - Y0
+#define DZ ZNZ - Z0
 
 using namespace std;
 
@@ -54,154 +56,106 @@ void fillStartPhiValues(double * phiSolid, int Nx, int Ny, int Nz, const double&
         // phi(xi, yj, 1), phi(xi, yj, -1)
         for (int i1 = 0; i1 < Ny; ++i1) {
             for (int i2 = 0; i2 < Nx; ++i2) {
-                calculatePhiArguments(i2, i1, Nz-1, x, y, z, Hx, Hy, Hz);
-                phiSolid[i1*Nx + i2 + marginalValues[s]*(Nz-1)*Nx*Ny] = phi(x, y, z);
+                calculatePhiArguments(i2, i1, marginalValues[s]*(Nz-1), x, y, z, Hx, Hy, Hz);
+                phiSolid[i2 + i1*Nx + marginalValues[s]*(Nz-1)*Nx*Ny] = phi(x, y, z);
             }
         }
 
         // phi(xi, 1, zk), phi(xi, -1, zk)
         for (int i1 = 0; i1 < Nz; ++i1) {
             for (int i2 = 0; i2 < Nx; ++i2) {
-                calculatePhiArguments(i2, Ny-1, i1, x, y, z, Hx, Hy, Hz);
-                phiSolid[i1*Nx*Ny + i2 + marginalValues[s]*(Ny-1)*Nx] = phi(x, y, z);
+                calculatePhiArguments(i2, marginalValues[s]*(Ny-1), i1, x, y, z, Hx, Hy, Hz);
+                phiSolid[i2 + marginalValues[s]*(Ny-1)*Nx + i1*Nx*Ny] = phi(x, y, z);
             }
         }
 
         // phi(1, yj, zk), phi(-1, yj, zk)
         for (int i1 = 0; i1 < Nz; ++i1) {
             for (int i2 = 0; i2 < Ny; ++i2) {
-                calculatePhiArguments(Nx-1, i2, i1, x, y, z, Hx, Hy, Hz);
-                phiSolid[i1*Nx*Ny + i2*Nx + marginalValues[s]*(Nx-1)] = phi(x, y, z);
+                calculatePhiArguments(marginalValues[s]*(Nx-1), i2, i1, x, y, z, Hx, Hy, Hz);
+                phiSolid[marginalValues[s]*(Nx-1) + i2*Nx + i1*Nx*Ny] = phi(x, y, z);
             }
         }
     }
 }
 
-char calculateCompleteCondition(double ** phiValuesPart,  const double& Hx, const double& Hy, const double& Hz){
-
-}
-
-double calculateMPlusOnePhiValue(double ** phiValuesPart, int NxPart, int NyPart, int NzPart, const double& Hx, const double& Hy, const double& Hz){
+void calculateMPlusOnePhiValue(double ** phiValuesPart, int NxPart, int NyPart, int NzPart, const double& Hx, const double& Hy, const double& Hz, double &maxDiff, double &delta){
     int NzAddition = NzPart % 2;
-    int medValZ = NzPart / 2 + NzAddition;
+    int medValZ = NzPart / 2;
     double a[4];
     double b[4];
+    double precisePhiValue[2];
+    int K[2];
 
-    double maxDiff = numeric_limits<double>::max();
-
-    double denominator = 1 / ( 2/Hx*Hx + 2/Hy*Hy + 2/Hz*Hz + A );
+    double denominator = 1 / ( 2/(Hx*Hx) + 2/(Hy*Hy) + 2/(Hz*Hz) + A );
 
     double x, y, z;
 
-    if(NzAddition == 1) {
-        // NzPart mod 2 = 1
-        for(int k = 0; k < medValZ; ++k){
-            for (int j = 0; j < NyPart; ++j) {
-                for (int i = 0; i < NxPart; ++i) {
-                    // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
-                    a[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ-1+k)*NxPart*NyPart]
-                            + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ-1+k)*NxPart*NyPart];
+    for(int k = 0; k < medValZ + NzAddition; ++k){
+        for (int j = 0; j < NyPart; ++j) {
+            for (int i = 0; i < NxPart; ++i) {
+                K[0] = medValZ+k; // NzPart MOD 2 == 1 -> K[0] = medValZ + k | NzPart MOD 2 == 0 -> K[0] = medValZ + k
+                // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
+                a[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + K[0]*NxPart*NyPart]
+                       + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + K[0]*NxPart*NyPart];
 
-                    // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
-                    a[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ-1+k)*NxPart*NyPart]
-                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ-1+k)*NxPart*NyPart];
+                // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
+                a[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + K[0]*NxPart*NyPart]
+                       + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + K[0]*NxPart*NyPart];
 
-                    // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
-                    a[2] = isVld(medValZ-1+k, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ-1+k+1)*NxPart*NyPart]
-                           + isVld(medValZ-1+k, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ-1+k-1)*NxPart*NyPart];
+                // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
+                a[2] = isVld(K[0], NzPart, +1)*phiValuesPart[0][i + j*NxPart + (K[0]+1)*NxPart*NyPart]
+                       + isVld(K[0], NzPart, -1)*phiValuesPart[0][i + j*NxPart + (K[0]-1)*NxPart*NyPart];
 
-                    // ro_{i, j, k}
-                    calculatePhiArguments(i, j, medValZ-1+k, x, y, z, Hx, Hy, Hz);
-                    a[3] = ro(phi(x, y, z));
+                // ro_{i, j, k}
+                calculatePhiArguments(i, j, K[0], x, y, z, Hx, Hy, Hz);
+                precisePhiValue[0] = phi(x, y, z);
+                a[3] = ro(precisePhiValue[0]);
 
-                    // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
-                    b[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ-1-k)*NxPart*NyPart]
-                           + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ-1-k)*NxPart*NyPart];
+                K[1] = (medValZ-1+NzAddition-k); // NzPart MOD 2 == 1 -> K[0] = medValZ - k | NzPart MOD 2 == 0 -> K[0] = medValZ - 1 - k
+                // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
+                b[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + K[1]*NxPart*NyPart]
+                       + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + K[1]*NxPart*NyPart];
 
-                    // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
-                    b[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ-1-k)*NxPart*NyPart]
-                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ-1-k)*NxPart*NyPart];
+                // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
+                b[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + K[1]*NxPart*NyPart]
+                       + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + K[1]*NxPart*NyPart];
 
-                    // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
-                    b[2] = isVld(medValZ-1-k, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ-1-k+1)*NxPart*NyPart]
-                           + isVld(medValZ-1-k, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ-1-k-1)*NxPart*NyPart];
+                // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
+                b[2] = isVld(K[1], NzPart, +1)*phiValuesPart[0][i + j*NxPart + (K[1]+1)*NxPart*NyPart]
+                       + isVld(K[1], NzPart, -1)*phiValuesPart[0][i + j*NxPart + (K[1]-1)*NxPart*NyPart];
 
-                    // ro_{i, j, k}
-                    calculatePhiArguments(i, j, medValZ-1-k, x, y, z, Hx, Hy, Hz);
-                    b[3] = ro(phi(x, y, z));
+                // ro_{i, j, k}
+                calculatePhiArguments(i, j, K[1], x, y, z, Hx, Hy, Hz);
+                precisePhiValue[1] = phi(x, y, z);
+                b[3] = ro(precisePhiValue[1]);
 
-                    // phi[M+1]_{i, j, k}
-                    phiValuesPart[1][j + i*NxPart + (medValZ-1+k)*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
+                // phi[M+1]_{i, j, k}
+                phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
 
-                    // phi[M+1]_{i, j, k}
-                    phiValuesPart[1][j + i*NxPart + (medValZ-1-k)*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
+                // phi[M+1]_{i, j, k}
+                phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
 
-                    if(abs(phiValuesPart[1][i + j*NxPart + (medValZ-1+k)*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + (medValZ-1+k)*NxPart*NyPart]) > maxDiff){
-                        maxDiff = abs(phiValuesPart[1][i + j*NxPart + (medValZ-1+k)*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + (medValZ-1+k)*NxPart*NyPart]);
-                    }
-
-                    if(abs(phiValuesPart[1][i + j*NxPart + (medValZ-1-k)*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + (medValZ-1-k)*NxPart*NyPart]) > maxDiff){
-                        maxDiff = abs(phiValuesPart[1][i + j*NxPart + (medValZ-1-k)*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + (medValZ-1-k)*NxPart*NyPart]);
-                    }
+                if(abs(phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart]) > maxDiff){
+                    maxDiff = abs(phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart]);
                 }
-            }
-        }
-    } else {
-        // NzPart mod 2 = 0
-        for(int k = 0; k < medValZ; ++k){
-            for (int j = 0; j < NyPart; ++j) {
-                for (int i = 0; i < NxPart; ++i) {
-                    // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
-                    a[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ+k)*NxPart*NyPart]
-                           + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ+k)*NxPart*NyPart];
 
-                    // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
-                    a[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ+k)*NxPart*NyPart]
-                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ+k)*NxPart*NyPart];
+                if(abs(phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart]) > maxDiff){
+                    maxDiff = abs(phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart]);
+                }
 
-                    // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
-                    a[2] = isVld(medValZ+k, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ+k+1)*NxPart*NyPart]
-                           + isVld(medValZ+k, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ+k-1)*NxPart*NyPart];
+                if(abs(phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart] - precisePhiValue[0]) > delta){
+                    delta = abs(phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart] - precisePhiValue[0]);
+                }
 
-                    // ro_{i, j, k}
-                    calculatePhiArguments(i, j, medValZ+k, x, y, z, Hx, Hy, Hz);
-                    a[3] = ro(phi(x, y, z));
-
-                    // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
-                    b[0] = isVld(i, NxPart, +1)*phiValuesPart[0][(i+1) + j*NxPart + (medValZ-k-1)*NxPart*NyPart]
-                           + isVld(i, NxPart, -1)*phiValuesPart[0][(i-1) + j*NxPart + (medValZ-k-1)*NxPart*NyPart];
-
-                    // phi[M]_{i, j+1, k} + phi[M]_{i, j-1, k}
-                    b[1] = isVld(j, NyPart, +1)*phiValuesPart[0][i + (j+1)*NxPart + (medValZ-k-1)*NxPart*NyPart]
-                           + isVld(j, NyPart, -1)*phiValuesPart[0][i + (j-1)*NxPart + (medValZ-k-1)*NxPart*NyPart];
-
-                    // phi[M]_{i, j, k+1} + phi[M]_{i, j, k-1}
-                    b[2] = isVld(medValZ-k-1, NzPart, +1)*phiValuesPart[0][i + j*NxPart + (medValZ-k-1+1)*NxPart*NyPart]
-                           + isVld(medValZ-k-1, NzPart, -1)*phiValuesPart[0][i + j*NxPart + (medValZ-k-1-1)*NxPart*NyPart];
-
-                    // ro_{i, j, k}
-                    calculatePhiArguments(i, j, medValZ-k-1, x, y, z, Hx, Hy, Hz);
-                    b[3] = ro(phi(x, y, z));
-
-                    // phi[M+1]_{i, j, k}
-                    phiValuesPart[1][j + i*NxPart + (medValZ+k)*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
-
-                    // phi[M+1]_{i, j, k}
-                    phiValuesPart[1][j + i*NxPart + (medValZ-k-1)*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
-
-                    if(abs(phiValuesPart[1][i + j*NxPart + (medValZ+k)*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + (medValZ+k)*NxPart*NyPart]) > maxDiff){
-                        maxDiff = abs(phiValuesPart[1][i + j*NxPart + (medValZ+k)*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + (medValZ+k)*NxPart*NyPart]);
-                    }
-
-                    if(abs(phiValuesPart[1][i + j*NxPart + (medValZ-k-1)*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + (medValZ-k-1)*NxPart*NyPart]) > maxDiff){
-                        maxDiff = abs(phiValuesPart[1][i + j*NxPart + (medValZ-k-1)*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + (medValZ-k-1)*NxPart*NyPart]);
-                    }
+                if(abs(phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart] - precisePhiValue[1]) > delta){
+                    delta = abs(phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart] - precisePhiValue[1]);
                 }
             }
         }
     }
 
-    return maxDiff;
+    memcpy(phiValuesPart[0], phiValuesPart[1], NxPart*NyPart*NzPart);
 }
 
 int main(){
@@ -220,7 +174,8 @@ int main(){
     double Hy = DY / (Ny - 1);
     double Hz = DZ / (Nz - 1);
 
-    double maxDiff;
+    double maxDiff = numeric_limits<double>::min();
+    double delta = numeric_limits<double>::min();
 
     for(auto & i : phiValuesPart) {
         i = new double[NzPart*Ny*Nx];
@@ -229,14 +184,19 @@ int main(){
     fillStartPhiValues(phiValuesPart[0], Nx, Ny, Nz, Hx, Hy, Hz);
 
     do{
-        maxDiff = calculateMPlusOnePhiValue(phiValuesPart, Nx, Ny, NzPart, Hx, Hy, Hz);
-    } while (maxDiff < EPSILON);
+        calculateMPlusOnePhiValue(phiValuesPart, Nx, Ny, NzPart, Hx, Hy, Hz, maxDiff, delta);
 
-    /*for (int i = 0; i < Ny; ++i) {
+        if(delta > EPSILON*MAX_DIFF_DELTA){
+            cout << "DELTA is bigger than EPSILON*1e2.\n";
+            break;
+        }
+    } while (maxDiff > EPSILON);
+
+    for (int i = 0; i < Ny; ++i) {
         for (int j = 0; j < Nx; ++j) {
-            cout << phiSolid[i*Ny + j + (Nz-2)*Nx*Nz] << " ";
+            cout << phiValuesPart[1][i*Ny + j + (0)*Nx*Nz] << " ";
         }
         cout << endl;
-    }*/
+    }
 
 }
