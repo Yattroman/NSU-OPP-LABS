@@ -66,7 +66,7 @@ void collectMatrixCParts(double* matrixCPart, int n1, int n3, int N3, double* ma
 
     MPI_Type_vector(n1, n3, N3, MPI_DOUBLE, &cMatBlock);
     MPI_Type_commit(&cMatBlock);
-    MPI_Type_create_resized(cMatBlock, 0,sizeof(double), &cMatBlockType);
+    MPI_Type_create_resized(cMatBlock, 0, sizeof(double), &cMatBlockType);
     MPI_Type_commit(&cMatBlockType);
 
     MPI_Gatherv(matrixCPart, n1*n3, MPI_DOUBLE, matrixC, recvcounts, displs, cMatBlockType, 0, comm2d);
