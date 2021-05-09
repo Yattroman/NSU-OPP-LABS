@@ -6,7 +6,7 @@
 #define MAX_DIFF_DELTA 1e2
 
 #define A 1e5
-#define START_VALUE_N 11.0
+#define START_VALUE_N 300.0
 
 #define X0 -1.0
 
@@ -113,38 +113,73 @@ void fillStartPhiValues(long double * phiSolid, int Nx, int Ny, int Nz, const lo
 }
 
 void calculateMaxDiffAndDelta(long double ** phiValuesPart, long double * precisePhiValue, int NxPart, int NyPart,
-                             long double& maxDiff, long double& delta, int i, int j, int * K){
-    if(abs(phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart]) > maxDiff){
-        maxDiff = abs(phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart]);
+                             long double& maxDiff, long double& delta, int i, int j, int * K, int Nz){
+
+    if(K[0] != 0){
+        if(abs(phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart]) > maxDiff){
+            maxDiff = abs(phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart]);
+        }
+        if(abs(phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart] - precisePhiValue[0]) > delta){
+            delta = abs(phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart] - precisePhiValue[0]);
+        }
     }
 
-    if(abs(phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart]) > maxDiff){
-        maxDiff = abs(phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart]);
+    if(K[1] != Nz - 1){
+        if(abs(phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart]) > maxDiff){
+            maxDiff = abs(phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart]);
+        }
+        if(abs(phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart] - precisePhiValue[1]) > delta){
+            delta = abs(phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart] - precisePhiValue[1]);
+        }
     }
 
-    if(abs(phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart] - precisePhiValue[0]) > delta){
-        delta = abs(phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart] - precisePhiValue[0]);
-    }
-
-    if(abs(phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart] - precisePhiValue[1]) > delta){
-        delta = abs(phiValuesPart[0][i + j*NxPart + K[1]*NxPart*NyPart] - precisePhiValue[1]);
-    }
 }
 
 void calculateBoundaries(long double ** phiValuesPart, int NxPart, int NyPart, int NzPart, const long double& Hx, const long double& Hy, const long double& Hz,
-                         long double &maxDiff, long double &delta, long double * boundary, int procRank, int procCount, int * H){
+                         long double &maxDiff, long double &delta, long double ** boundaries, int procRank, int procCount, int * H, int Nz){
 
-    long double a[4];
-    long double b[4];
+    long double a[4], b[4];
 
-    double x, y, z;
+    long double precisePhiValue[2];
+
+    long double x, y, z;
 
     long double denominator = ( 2.0/(Hx*Hx) + 2.0/(Hy*Hy) + 2.0/(Hz*Hz) + A );
+
+    for (int j = 1; j < NyPart - 1; ++j) {
+        for (int i = 1; i < NxPart - 1; ++i) {
+            if(procRank !=0 ){
+                a[0] = phiValuesPart[0][(i+1) + j*NxPart + H[0]*NxPart*NyPart] + phiValuesPart[0][(i-1) + j*NxPart + H[0]*NxPart*NyPart];
+                a[1] = phiValuesPart[0][i + (j+1)*NxPart + H[0]*NxPart*NyPart] + phiValuesPart[0][i + (j-1)*NxPart + H[0]*NxPart*NyPart];
+                a[2] = phiValuesPart[0][i + j*NxPart + (H[0]+1)*NxPart*NyPart] + boundaries[0][i + j*NxPart];
+
+                calculatePhiArguments(i, j, H[0], x, y, z, Hx, Hy, Hz);
+                precisePhiValue[0] = phi(x, y, z);
+                a[3] = -rho(precisePhiValue[0]);
+
+                phiValuesPart[1][i + j*NxPart + H[0]*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
+            }
+
+            if(procRank != procCount - 1){
+                b[0] = phiValuesPart[0][(i+1) + j*NxPart + H[1]*NxPart*NyPart] + phiValuesPart[0][(i-1) + j*NxPart + H[1]*NxPart*NyPart];
+                b[1] = phiValuesPart[0][i + (j+1)*NxPart + H[1]*NxPart*NyPart] + phiValuesPart[0][i + (j-1)*NxPart + H[1]*NxPart*NyPart];
+                b[2] = boundaries[0][i + j*NxPart] + phiValuesPart[0][i + j*NxPart + (H[1]-1)*NxPart*NyPart];
+
+                calculatePhiArguments(i, j, H[1], x, y, z, Hx, Hy, Hz);
+                precisePhiValue[1] = phi(x, y, z);
+                b[3] = -rho(precisePhiValue[1]);
+
+                phiValuesPart[1][i + j*NxPart + H[1]*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
+            }
+
+            calculateMaxDiffAndDelta(phiValuesPart, precisePhiValue, NxPart, NyPart, maxDiff, delta, i, j, H, Nz);
+        }
+    }
 
 }
 
 void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyPart, int NzPart, const long double& Hx, const long double& Hy, const long double& Hz,
-                               long double &maxDiff, long double &delta, long double ** boundary, int procRank, int procCount){
+                               long double &maxDiff, long double &delta, long double ** boundaries, int procRank, int procCount, int Nz){
     int NzAddition = NzPart % 2;
     int medValZ = NzPart / 2;
     int K[2];
@@ -166,7 +201,7 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
     int boundariesIndexS[2] = { procRank*(NzPart/procCount), (procRank+1)*(NzPart/procCount) - 1 };
 
     sendBoundaries(phiValuesPart, boundariesIndexS, procRank, NxPart*NyPart, reqs, procCount);
-    getBoundaries(boundary, procRank, NxPart*NyPart, reqr, procCount);
+    getBoundaries(boundaries, procRank, NxPart*NyPart, reqr, procCount);
 
     for(int k = 0; k < medValZ + NzAddition - 1; ++k){
         for (int j = 1; j < NyPart - 1; ++j) {
@@ -208,12 +243,12 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
                 // phi[M+1]_{i, j, k}
                 phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
 
-                calculateMaxDiffAndDelta(phiValuesPart, precisePhiValue, NxPart, NyPart, maxDiff, delta, i, j, K);
+                calculateMaxDiffAndDelta(phiValuesPart, precisePhiValue, NxPart, NyPart, maxDiff, delta, i, j, K, Nz);
             }
         }
     }
 
-//    calculate
+    calculateBoundaries(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiff, delta, boundaries, procRank, procCount, boundariesIndexS, Nz);
 
     waitMessages(reqr, reqs, procRank, procCount);
 
@@ -246,9 +281,9 @@ int main(int argc, char* argv[]){
     int NyPart = Ny / 1;
     int NzPart = Nz / procCount;
 
-    long double Hx = DX / ((long double) Nx - 1);
-    long double Hy = DY / ((long double) Ny - 1);
-    long double Hz = DZ / ((long double) Nz - 1);
+    long double Hx = DX / ((long double) Nx - 1.0);
+    long double Hy = DY / ((long double) Ny - 1.0);
+    long double Hz = DZ / ((long double) Nz - 1.0);
 
     long double maxDiff;
     long double delta;
@@ -272,7 +307,7 @@ int main(int argc, char* argv[]){
     cutStartPhiValuesMatrix(phiValuesPart, phiValuesSolid, NxPart, NyPart, NzPart);
 
     do{
-        calculateMPlusOnePhiValue(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiff, delta, boundary, procRank, procCount);
+        calculateMPlusOnePhiValue(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiff, delta, boundary, procRank, procCount, Nz);
 
         if(maxDiff < EPSILON){
             break;
