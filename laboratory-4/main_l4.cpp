@@ -62,10 +62,6 @@ void cutStartPhiValuesMatrix(long double ** phiValuesPart, long double * phiValu
     memcpy(phiValuesPart[1], phiValuesPart[0], NxPart*NyPart*NzPart*sizeof(long double));
 }
 
-int isVld(int value, int limit, int addition){
-    return (value + addition < 0 || value + addition >= limit) ? 0 : 1;
-}
-
 void calculatePhiArguments(int i, int j, int k, long double &x, long double &y, long double &z, const long double &Hx, const long double &Hy, const long double &Hz){
     x = X0 + i*Hx;
     y = Y0 + j*Hy;
@@ -247,7 +243,7 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
 
     calculateBoundaries(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundaries, procRank, procCount, H, L);
 
-    /*if(procRank == 0){
+    /*if(procRank == 2){
         for (int j = 0; j < NyPart; ++j) {
             for (int i = 0; i < NxPart; ++i) {
                 cout << boundaries[1][i + j*NxPart] << " ";
@@ -258,7 +254,7 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if(procRank == 1){
+    if(procRank == 3){
         cout << endl;
 
         for (int j = 0; j < NyPart; ++j) {
@@ -274,13 +270,14 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
 }
 
 int main(int argc, char* argv[]){
+
+    MPI_Init(&argc,&argv);
+
     long double * phiValuesPart[2];
     long double * boundary[2]; // 0 - upper boundary, 1 - lower boundary
     long double * phiValuesSolid;
     long double maxDiff;
     long double delta;
-
-    MPI_Init(&argc,&argv);
 
     int procCount;
     int procRank;
@@ -320,8 +317,6 @@ int main(int argc, char* argv[]){
     }
 
     cutStartPhiValuesMatrix(phiValuesPart, phiValuesSolid, NxPart, NyPart, NzPart);
-
-//    calculateMPlusOnePhiValue(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundary, procRank, procCount, Nz);
 
     do{
         calculateMPlusOnePhiValue(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundary, procRank, procCount, Nz);
