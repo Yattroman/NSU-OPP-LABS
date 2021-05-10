@@ -117,10 +117,10 @@ void calculateMaxDiffLocalAndDeltaLocal(long double ** phiValuesPart, long doubl
                              long double& maxDiffLocal, long double& deltaLocal, int i, int j, int k){
 
     if(abs(phiValuesPart[1][i + j*NxPart + k*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + k*NxPart*NyPart]) > maxDiffLocal){
-        maxDiffLocal = abs(phiValuesPart[1][i + j*NxPart + k*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + k*NxPart*NyPart]);
+        maxDiffLocal =  abs(phiValuesPart[1][i + j*NxPart + k*NxPart*NyPart] - phiValuesPart[0][i + j*NxPart + k*NxPart*NyPart]);
     }
     if(abs(phiValuesPart[0][i + j*NxPart + k*NxPart*NyPart] - precisePhiValue) > deltaLocal){
-        deltaLocal = abs(phiValuesPart[0][i + j*NxPart + k*NxPart*NyPart] - precisePhiValue);
+        deltaLocal =    abs(phiValuesPart[0][i + j*NxPart + k*NxPart*NyPart] - precisePhiValue);
     }
 
 }
@@ -152,7 +152,7 @@ void calculateBoundaries(long double ** phiValuesPart, int NxPart, int NyPart, i
             if( procRank != procCount-1 ){
                 b[0] = phiValuesPart[0][(i+1) + j*NxPart + H[1]*NxPart*NyPart] + phiValuesPart[0][(i-1) + j*NxPart + H[1]*NxPart*NyPart];
                 b[1] = phiValuesPart[0][i + (j+1)*NxPart + H[1]*NxPart*NyPart] + phiValuesPart[0][i + (j-1)*NxPart + H[1]*NxPart*NyPart];
-                b[2] = boundaries[1][i + j*NxPart] + phiValuesPart[0][i + j*NxPart + (H[1]-1)*NxPart*NyPart];
+                b[2] = boundaries[1][i + j*NxPart]                             + phiValuesPart[0][i + j*NxPart + (H[1]-1)*NxPart*NyPart];
 
                 calculatePhiArguments(i, j, L[1], x, y, z, Hx, Hy, Hz);
                 precisePhiValue[1] = phi(x, y, z);
@@ -218,10 +218,6 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
                 // phi[M+1]_{i, j, k}
                 phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
 
-                if(isnan(phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart]) && procRank == 2){
-                    cout << i << " " << j << " " << K[0] << "\n";
-                }
-
                 calculateMaxDiffLocalAndDeltaLocal(phiValuesPart, precisePhiValue[0], NxPart, NyPart, maxDiffLocal, deltaLocal, i, j, K[0]);
 
                 K[1] = medValZ-1+NzAddition-k; // NzPart MOD 2 == 1 -> K[0] = medValZ - k | NzPart MOD 2 == 0 -> K[0] = medValZ - 1 - k
@@ -241,11 +237,6 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
 
                 // phi[M+1]_{i, j, k}
                 phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
-
-                // deb
-                if(isnan(phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart]) && procRank == 2){
-                    cout << i << " " << j << " " << K[1] << "\n";
-                }
 
                 calculateMaxDiffLocalAndDeltaLocal(phiValuesPart, precisePhiValue[1], NxPart, NyPart, maxDiffLocal, deltaLocal, i, j, K[1]);
             }
@@ -317,11 +308,6 @@ int main(int argc, char* argv[]){
     long double maxDiffLocal;
     long double deltaLocal;
 
-
-    for(auto & i : phiValuesPart) {
-        i = new long double[NzPart*NyPart*NxPart];
-    }
-
     for (int i = 0; i < 2; ++i) {
         boundary[i] = new long double[NyPart*NxPart];
         phiValuesPart[i] = new long double[NzPart*NyPart*NxPart];
@@ -335,6 +321,8 @@ int main(int argc, char* argv[]){
 
     cutStartPhiValuesMatrix(phiValuesPart, phiValuesSolid, NxPart, NyPart, NzPart);
 
+//    calculateMPlusOnePhiValue(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundary, procRank, procCount, Nz);
+
     do{
         calculateMPlusOnePhiValue(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundary, procRank, procCount, Nz);
 
@@ -342,8 +330,8 @@ int main(int argc, char* argv[]){
         MPI_Allreduce(&deltaLocal, &delta, 1, MPI_LONG_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
         if(procRank == 0){
-//            cout << 1 << " ";
-//            cout << delta << endl;
+            cout << 1 << " ";
+            cout << delta << endl;
 //            cout << maxDiff << endl;
         }
 
@@ -361,7 +349,7 @@ int main(int argc, char* argv[]){
             cout << "Function is found\n";
         }
 
-        cout << delta << endl;
+//        cout << delta << endl;
 
     }
 
