@@ -172,6 +172,14 @@ int main(int argc, char* argv[]){
         std::cout << "Time taken: " << endTime - startTime;
     }
 
+    delete[] matrixA;
+    delete[] matrixB;
+    delete[] matrixC;
+
+    delete[] matrixAPart;
+    delete[] matrixBPart;
+    delete[] matrixCPart;
+
     MPI_Finalize();
 
     return EXIT_SUCCESS;

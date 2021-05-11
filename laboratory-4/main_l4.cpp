@@ -7,7 +7,7 @@
 #define MAX_DIFF_deltaLocal 1e2
 
 #define A 1e5
-#define START_VALUE_N 12.0
+#define START_VALUE_N 288.0
 
 #define X0 -1.0
 
@@ -131,7 +131,7 @@ void calculateBoundaries(long double ** phiValuesPart, int NxPart, int NyPart, i
 
     for (int j = 1; j < NyPart - 1; ++j) {
         for (int i = 1; i < NxPart - 1; ++i) {
-            if( L[0] != 0 ){
+            if( procRank != 0 ){
                 a[0] = phiValuesPart[0][(i+1) + j*NxPart + H[0]*NxPart*NyPart] + phiValuesPart[0][(i-1) + j*NxPart + H[0]*NxPart*NyPart];
                 a[1] = phiValuesPart[0][i + (j+1)*NxPart + H[0]*NxPart*NyPart] + phiValuesPart[0][i + (j-1)*NxPart + H[0]*NxPart*NyPart];
                 a[2] = phiValuesPart[0][i + j*NxPart + (H[0]+1)*NxPart*NyPart] + boundaries[0][i + j*NxPart];
@@ -149,7 +149,7 @@ void calculateBoundaries(long double ** phiValuesPart, int NxPart, int NyPart, i
                 calculateMaxDiffLocalAndDeltaLocal(phiValuesPart, precisePhiValue[0], NxPart, NyPart, maxDiffLocal, deltaLocal, i, j, H[0]);
             }
 
-            if( L[0] != Nz-1 ){
+            if( procRank != procCount-1 ){
                 b[0] = phiValuesPart[0][(i+1) + j*NxPart + H[1]*NxPart*NyPart] + phiValuesPart[0][(i-1) + j*NxPart + H[1]*NxPart*NyPart];
                 b[1] = phiValuesPart[0][i + (j+1)*NxPart + H[1]*NxPart*NyPart] + phiValuesPart[0][i + (j-1)*NxPart + H[1]*NxPart*NyPart];
                 b[2] = boundaries[1][i + j*NxPart]                             + phiValuesPart[0][i + j*NxPart + (H[1]-1)*NxPart*NyPart];
@@ -245,7 +245,9 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
 
     waitMessages(reqr, reqs, procRank, procCount);
 
-    calculateBoundaries(phiValuesPart, NxPart, NyPart, Nz, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundaries, procRank, procCount, H, L);
+    if(procRank != 0){
+        calculateBoundaries(phiValuesPart, NxPart, NyPart, Nz, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundaries, procRank, procCount, H, L);
+    }
 
 //    MPI_Barrier(MPI_COMM_WORLD);
 
@@ -270,8 +272,8 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
             cout << endl;
 
         }
-    }
-*/
+    }*/
+
     memcpy(phiValuesPart[0], phiValuesPart[1], NxPart*NyPart*NzPart*sizeof(long double));
 }
 
@@ -289,6 +291,8 @@ int main(int argc, char* argv[]){
     int procCount;
     int procRank;
 
+    double startTime = MPI_Wtime();
+
     MPI_Comm_size(MPI_COMM_WORLD, &procCount);
     MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
 
@@ -304,6 +308,8 @@ int main(int argc, char* argv[]){
     int NxPart = Nx / 1;
     int NyPart = Ny / 1;
     int NzPart = Nz / procCount;
+
+    int iterationsCount = 0;
 
     long double Hx = DX / ((long double) Nx - 1.0);
     long double Hy = DY / ((long double) Ny - 1.0);
@@ -334,8 +340,9 @@ int main(int argc, char* argv[]){
         MPI_Allreduce(&deltaLocal, &delta, 1, MPI_LONG_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
         if(procRank == 0){
-            cout << 1 << " ";
-            cout << delta << endl;
+            iterationsCount++;
+//            cout << 1 << " ";
+//            cout << delta << endl;
 //            cout << maxDiff << endl;
         }
 
@@ -350,11 +357,31 @@ int main(int argc, char* argv[]){
         if(delta > EPSILON*MAX_DIFF_deltaLocal){
             cout << "delta is bigger than EPSILON*1e2.\n";
         } else {
-            cout << "Function is found\n";
+            cout << "Function is found" << endl;
         }
 
-//        cout << delta << endl;
+        cout << "Iterations: " << iterationsCount << endl;
 
     }
+
+    double endTime = MPI_Wtime();
+
+    double minimalStartTime;
+    double maximumEndTime;
+    MPI_Reduce( &endTime, &maximumEndTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
+    MPI_Reduce( &startTime, &minimalStartTime, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD );
+    if ( procRank == 0 ) {
+        std::cout << "Time taken: " << maximumEndTime - minimalStartTime;
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        delete[] boundary[i];
+        delete[] phiValuesPart[i];
+    }
+    if(procRank == 0){
+        delete[] phiValuesSolid;
+    }
+
+    MPI_Finalize();
 
 }
