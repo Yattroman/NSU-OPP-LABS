@@ -206,13 +206,6 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
                 K[0] = medValZ+k; // NzPart MOD 2 == 1 -> K[0] = medValZ + k | NzPart MOD 2 == 0 -> K[0] = medValZ + k
                 K[1] = medValZ-1+NzAddition-k; // NzPart MOD 2 == 1 -> K[0] = medValZ - k | NzPart MOD 2 == 0 -> K[0] = medValZ - 1 - k
 
-                if( K[0]==1 && K[1]==NzPart-2){
-                    waitMessages(reqr, reqs, procRank, procCount);
-                    if(procCount != 1){
-                        calculateBoundaries(phiValuesPart, NxPart, NyPart, Nz, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundaries, procRank, procCount, H, L);
-                    }
-                }
-
                 // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
                 a[0] = phiValuesPart[0][(i+1) + j*NxPart + K[0]*NxPart*NyPart] + phiValuesPart[0][(i-1) + j*NxPart + K[0]*NxPart*NyPart];
 
@@ -258,6 +251,11 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
                      << precisePhiValue[0] << ": " << i << " " << j << " " << K[0] << endl;*/
             }
         }
+    }
+
+    waitMessages(reqr, reqs, procRank, procCount);
+    if(procCount != 1){
+        calculateBoundaries(phiValuesPart, NxPart, NyPart, Nz, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundaries, procRank, procCount, H, L);
     }
 
 //    MPI_Barrier(MPI_COMM_WORLD);
