@@ -23,6 +23,8 @@
 
 using namespace std;
 
+// Attention! Consistent variant works very well, parallel variant has problems with delta (index trouble?)
+
 void waitMessages(MPI_Request * reqr, MPI_Request * reqs, int procRankSend, int procCount){
     if(procRankSend != 0) {
         MPI_Wait(&reqs[0], MPI_STATUS_IGNORE);
@@ -143,13 +145,6 @@ void calculateBoundaries(long double ** phiValuesPart, int NxPart, int NyPart, i
                 phiValuesPart[1][i + j*NxPart + H[0]*NxPart*NyPart] = (a[0]/(Hx*Hx) + a[1]/(Hy*Hy) + a[2]/(Hz*Hz) + a[3]) / denominator;
 
                 calculateMaxDiffLocalAndDeltaLocal(phiValuesPart, precisePhiValue[0], NxPart, NyPart, maxDiffLocal, deltaLocal, i, j, H[0]);
-
-                if(procRank == 1){
-                   /* cout << phiValuesPart[0][i + j*NxPart + H[0]*NxPart*NyPart] << " " << phiValuesPart[1][i + j*NxPart + H[0]*NxPart*NyPart] << " "
-                    << precisePhiValue[0] << ": " << i << " " << j << " " << L[0] << endl;*/
-//                   cout << x << " " << y << " " << z << endl;
-//                   cout << i << " " << j << " " << L[0] << endl;
-                }
             }
 
             if( procRank != procCount-1 ){
@@ -225,9 +220,6 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
 
                 calculateMaxDiffLocalAndDeltaLocal(phiValuesPart, precisePhiValue[0], NxPart, NyPart, maxDiffLocal, deltaLocal, i, j, K[0]);
 
-                /*cout << phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart] << " " << phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] << " "
-                     << precisePhiValue[0] << ": " << i << " " << j << " " << K[0] << endl;*/
-
                 // phi[M]_{i+1, j, k} + phi[M]_{i-1, j, k}
                 b[0] = phiValuesPart[0][(i+1) + j*NxPart + K[1]*NxPart*NyPart] + phiValuesPart[0][(i-1) + j*NxPart + K[1]*NxPart*NyPart];
 
@@ -246,9 +238,6 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
                 phiValuesPart[1][i + j*NxPart + K[1]*NxPart*NyPart] = (b[0]/(Hx*Hx) + b[1]/(Hy*Hy) + b[2]/(Hz*Hz) + b[3]) / denominator;
 
                 calculateMaxDiffLocalAndDeltaLocal(phiValuesPart, precisePhiValue[1], NxPart, NyPart, maxDiffLocal, deltaLocal, i, j, K[1]);
-
-                /*cout << phiValuesPart[0][i + j*NxPart + K[0]*NxPart*NyPart] << " " << phiValuesPart[1][i + j*NxPart + K[0]*NxPart*NyPart] << " "
-                     << precisePhiValue[0] << ": " << i << " " << j << " " << K[0] << endl;*/
             }
         }
     }
@@ -257,31 +246,6 @@ void calculateMPlusOnePhiValue(long double ** phiValuesPart, int NxPart, int NyP
     if(procCount != 1){
         calculateBoundaries(phiValuesPart, NxPart, NyPart, Nz, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundaries, procRank, procCount, H, L);
     }
-
-//    MPI_Barrier(MPI_COMM_WORLD);
-
-    /*if(procRank == 2){
-        for (int j = 0; j < NyPart; ++j) {
-            for (int i = 0; i < NxPart; ++i) {
-                cout << boundaries[0][i + j*NxPart] << " ";
-            }
-            cout << endl;
-        }
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    if(procRank == 1){
-        cout << endl;
-
-        for (int j = 0; j < NyPart; ++j) {
-            for (int i = 0; i < NxPart; ++i) {
-                cout << phiValuesPart[0][i + j*NxPart + boundariesOffsetS[1]] << " ";
-            }
-            cout << endl;
-
-        }
-    }*/
 
     memcpy(phiValuesPart[0], phiValuesPart[1], NxPart*NyPart*NzPart*sizeof(long double));
 }
@@ -339,9 +303,6 @@ int main(int argc, char* argv[]){
 
     cutStartPhiValuesMatrix(phiValuesPart, phiValuesSolid, NxPart, NyPart, NzPart);
 
-//    calculateMPlusOnePhiValue(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundary, procRank, procCount, Nz);
-
-
     do{
         calculateMPlusOnePhiValue(phiValuesPart, NxPart, NyPart, NzPart, Hx, Hy, Hz, maxDiffLocal, deltaLocal, boundaries, procRank, procCount, Nz);
 
@@ -350,9 +311,6 @@ int main(int argc, char* argv[]){
 
         if(procRank == 0){
             iterationsCount++;
-//            cout << 1 << " ";
-            cout << delta << endl;
-//            cout << maxDiff << endl;
         }
 
         if(maxDiff < EPSILON){
