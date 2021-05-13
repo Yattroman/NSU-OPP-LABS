@@ -19,5 +19,8 @@ set(LAB3_SOURCE laboratory-3/main_l3.cpp)
 
 set(LAB4_SOURCE laboratory-4/main_l4.cpp)
 
+set(LAB5_SOURCE laboratory-5/main.cpp)
+
 add_executable(laboratory-3 ${LAB3_SOURCE})
 add_executable(laboratory-4 ${LAB4_SOURCE})
+add_executable(laboratory-5 ${LAB5_SOURCE})
