@@ -3,21 +3,26 @@
 #include <iostream>
 #include "mpi.h"
 
-#define MAX_LISTS_COUNT 5
-#define TASKS_NUMBER 100
-#define L 100
-#define TRUE 1
+#define THREADS_NUM 2
+
+#define MAX_LISTS_COUNT 1
+#define TASKS_NUMBER 10
+#define L 10
 
 using namespace std;
+
+double globalResult = 0;
+
+pthread_t pthreads[THREADS_NUM];
 
 typedef struct TaskList{
     int repeatNumber;
 } TaskList;
 
-void printResults(int& pRank, int& tasksCompleted, double& globalRes, double& timeSpent){
+void printResults(int& pRank, int& tasksCompleted, double& timeSpent){
     cout << "Process rank: " << pRank << endl;
     cout << "Tasks completed: " << tasksCompleted << endl;
-    cout << "Global result: " << globalRes << endl;
+    cout << "Global result: " << globalResult << endl;
     cout << "Time spent: " << timeSpent << endl;
 
     cout << endl;
@@ -29,8 +34,35 @@ void fillTasksList(int pRank, int pSize, TaskList * TL, int iCounter){
     }
 }
 
-void doTasks(int& iCounter, TaskList * TL, double& globalResult, int& pRank, int& pSize){
+void * executeTasks(void * args){
+    auto TL = (TaskList*) args;
+
+    pthread_mutex_t globalResMutex;
+    pthread_mutex_init(&globalResMutex, nullptr);
+
+    double localResult = 0;
+
+    for (int i = 0; i < TASKS_NUMBER; ++i) {
+        for (int j = 0; j < TL[i].repeatNumber; ++j) {
+//            localResult += sin(i);
+            localResult += 1;
+        }
+    }
+
+    pthread_mutex_lock(&globalResMutex);
+    globalResult += localResult;
+    pthread_mutex_unlock(&globalResMutex);
+
+    pthread_exit(nullptr);
+}
+
+void doTasks(int& iCounter, TaskList * TL, int& pRank, int& pSize){
     double startTime, endTime, pDiff, timeSpent;
+
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
     int tasksCompleted = 0;
 
     while(iCounter < MAX_LISTS_COUNT){
@@ -38,28 +70,36 @@ void doTasks(int& iCounter, TaskList * TL, double& globalResult, int& pRank, int
 
         fillTasksList(pRank, pSize, TL, iCounter);
 
-        for (int i = 0; i < TASKS_NUMBER; ++i) {
-            for (int j = 0; j < TL[i].repeatNumber; ++j) {
-                globalResult += sin(i);
-            }
-            tasksCompleted++;
-        }
+        pthread_create(&pthreads[0], &attr, executeTasks, (void*) TL);
+        pthread_join(pthreads[0], nullptr);
+
+        double commonResult;
+        MPI_Allreduce(&globalResult, &commonResult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+        // Update global result on this iteration
+        globalResult = commonResult;
 
         endTime = MPI_Wtime();
+
+        // Calculate iteration time
         pDiff = endTime - startTime;
         MPI_Reduce(&pDiff, &timeSpent, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-        // Синхронизация процессов
+        // Processes sync
         MPI_Barrier(MPI_COMM_WORLD);
-        // Вывод результатов с этой итерации
-        printResults(pRank, tasksCompleted, globalResult, timeSpent);
+
+        // Print this iteration's results
+        printResults(pRank, tasksCompleted, timeSpent);
 
         iCounter++;
     }
+
+    pthread_attr_destroy(&attr);
 }
 
 int main(int argc, char ** argv){
-    MPI_Init(&argc, &argv);
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     int pRank, pSize;
 
@@ -67,11 +107,15 @@ int main(int argc, char ** argv){
     MPI_Comm_rank(MPI_COMM_WORLD, &pRank);
 
     int iCounter = 0; // Iterations Counter
-    double globalResult = 0;
 
     TaskList TL[TASKS_NUMBER];
 
-    doTasks(iCounter, TL, globalResult, pRank, pSize);
+//    double temp = 0;
+//    fillTasksList(pRank, pSize, TL, iCounter, temp);
+
+//    cout << temp << endl;
+
+    doTasks(iCounter, TL, pRank, pSize);
 
     MPI_Finalize();
 }
