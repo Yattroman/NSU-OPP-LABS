@@ -5,7 +5,8 @@
 
 #define THREADS_NUM 2
 
-#define MAX_LISTS_COUNT 1
+#define MAX_LISTS_COUNT 2
+#define UPLOADING_START_VALUE 9
 #define TASKS_NUMBER 10
 #define L 10
 
@@ -35,6 +36,7 @@ void fillTasksList(int pRank, int pSize, TaskList * TL, int iCounter){
 }
 
 void * executeTasks(void * args){
+    // Executor deals
     auto TL = (TaskList*) args;
 
     pthread_mutex_t globalResMutex;
@@ -43,6 +45,12 @@ void * executeTasks(void * args){
     double localResult = 0;
 
     for (int i = 0; i < TASKS_NUMBER; ++i) {
+        if(TL[i].repeatNumber < UPLOADING_START_VALUE){
+            // Analyzer вычисляет, у какого процесса по сравнению с этим больше всего разница в незавершенных заданиях
+            // Loader начинает подгрузку заданий с подходящего процесса на фоне вычислений
+            // Ставим флаг подрузки, чтобы снова не заходить в эту секцию
+            // Проблема может быть в круговой постоянной пересылке данных, если процессы выполняют задания +- одновременно
+        }
         for (int j = 0; j < TL[i].repeatNumber; ++j) {
 //            localResult += sin(i);
             localResult += 1;
