@@ -3,189 +3,259 @@
 #include <iostream>
 #include <cstring>
 #include <pthread.h>
+#include <vector>
 #include "mpi.h"
 
 #define THREADS_NUM 2
-
-#define MAX_LISTS_COUNT 2
-#define UPLOADING_START_VALUE 9
+#define REQUEST_TAG 900
+#define RESPONSE_TAG 90
+#define TASK_TAG 9
+#define STOP_FL -1
+#define MAX_LISTS_COUNT 3
 #define TASKS_NUMBER 10
 #define L 10
+#define TRUE 1
+#define UPLOAD_LIMIT 2
+#define NO_AVAILABLE_TASKS 2
 
 using namespace std;
 
-double globalResult = 0;
-pthread_t pthreads[THREADS_NUM];
-
-typedef struct TaskList{
+typedef struct Task{
     int repeatNumber;
-} TaskList;
 
-typedef struct AnalyzeInfo{
+    explicit Task(int number) : repeatNumber(number) {};
+    Task() : repeatNumber(0) {};
+} Task;
+
+int pSize;
+int pRank;
+
+int iCounter;
+unsigned long iTask;
+
+int tasksSent;
+int tasksReceived;
+
+double globalResult = 0;
+
+pthread_t receiverThread;
+pthread_t executorThread;
+
+pthread_mutex_t taskListMutex;
+pthread_mutex_t receiverMutex;
+
+vector<Task> TaskList;
+
+/*typedef struct AnalyzeInfo{
     int uncompletedTasks;
     int procRankRequest;
     int procSize;
 
     int& maxDiff;
     int& maxDiffRank;
-} AnalyzeInfo;
-
-typedef struct LoadInfo{
-    TaskList * addTL;
-    TaskList * mainTL;
-    int taskSent;
-} LoadInfo;
+} AnalyzeInfo;*/
 
 void atError(){
     MPI_Finalize();
     exit(EXIT_FAILURE);
 }
 
-void printResults(int& pRank, int& tasksCompleted, double& timeSpent){
+void printResults(double& timeSpent){
     cout << "Process rank: " << pRank << endl;
-    cout << "Tasks completed: " << tasksCompleted << endl;
+    cout << "Tasks completed: " << iTask << endl;
     cout << "Global result: " << globalResult << endl;
     cout << "Time spent: " << timeSpent << endl;
 
     cout << endl;
 }
 
-void fillTasksList(int pRank, int pSize, TaskList * TL, int iCounter){
+void fillTasksList(){
+    TaskList.clear();
+
     for (int i = 0; i < TASKS_NUMBER; ++i) {
-        TL[i].repeatNumber = abs(TASKS_NUMBER/2 - i) * abs(pRank - iCounter % pSize) * L;
+        TaskList.emplace_back(abs(TASKS_NUMBER/2 - i) * abs(pRank - iCounter % pSize) * L);
     }
 }
 
-void * waitingNewTasks(void * args){
-
-}
-
-void * sendNewTasks(void * args){
+int analyzeProcessesLoad(int uncompletedTasks, int& maxDiff){
     // Analyze which process has maximal load
-    auto analyzeInf = (AnalyzeInfo*) args;
-
-    int uncompletedTasks = analyzeInf->uncompletedTasks;
-
-    int procRankRequest = analyzeInf->procRankRequest;
-    int uncompletedTasksRequest = analyzeInf->uncompletedTasks;
-
-    int procSize = analyzeInf->procSize;
+    int uncompletedTasksRequest = uncompletedTasks;
 
     int localDiff;
-    int differs[procSize];
-    int maxDiff = 0;
-    int maxDiffRank;
+    int differents[pSize];
 
-    memset(differs, -1, procSize*sizeof(double));
+    int maxDiffRank = -1;
 
-    MPI_Bcast(&uncompletedTasksRequest, 1, MPI_INT, procRankRequest, MPI_COMM_WORLD);
+    memset(differents, -1, pSize*sizeof(int));
+
+    MPI_Bcast(&uncompletedTasksRequest, 1, MPI_INT, pRank, MPI_COMM_WORLD);
 
     localDiff = uncompletedTasks - uncompletedTasksRequest;
-    MPI_Allgather(&localDiff, 1, MPI_INT, differs, 1, MPI_INT, MPI_COMM_WORLD);
+    MPI_Allgather(&localDiff, 1, MPI_INT, differents, 1, MPI_INT, MPI_COMM_WORLD);
 
-    for (int i = 0; i < procSize; ++i) {
-        if (differs[i] > maxDiff) {
-            maxDiff = differs[i];
+    for (int i = 0; i < pSize; ++i) {
+        if (differents[i] > maxDiff && maxDiffRank > 3) {
+            maxDiff = differents[i];
             maxDiffRank = i;
         }
+
     }
 
-    if(maxDiff > 3){
-        analyzeInf->maxDiff = maxDiff;
-        analyzeInf->maxDiffRank = maxDiffRank;
-    } else {
-        analyzeInf->maxDiff = -1;
-        analyzeInf->maxDiffRank = -1;
-    }
-
-    pthread_exit(nullptr);
+    return maxDiffRank;
 }
 
-void * executeTasks(void * args){
-    // Executor deals
-    auto TL = (TaskList*) args;
-
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
+void executeTasks(Task task){
     double localResult = 0;
 
-    pthread_create(&pthreads[1], &attr, waitingNewTasks, (void*) TL);
-
     for (int i = 0; i < TASKS_NUMBER; ++i) {
-        for (int j = 0; j < TL[i].repeatNumber; ++j) {
-//            localResult += sin(i);
+        for (int j = 0; j < task.repeatNumber; ++j) {
             localResult += 1;
         }
     }
 
-    pthread_join(pthreads[1], nullptr);
-
-    // Analyzer вычисляет, у какого процесса по сравнению с этим больше всего разница в незавершенных заданиях
-    // Loader начинает подгрузку заданий с подходящего процесса на фоне вычислений
-
     globalResult += localResult;
+}
+
+int receiveTasks(int reqProc){
+    if(reqProc == pRank || reqProc == -1){
+        return NO_AVAILABLE_TASKS;
+    }
+    int availabilityFl = 1;
+
+    MPI_Send(&availabilityFl, 1, MPI_INT, reqProc, REQUEST_TAG, MPI_COMM_WORLD);
+    MPI_Recv(&availabilityFl, 1, MPI_INT, reqProc, REQUEST_TAG, MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
+
+    if(availabilityFl == 0){
+        return NO_AVAILABLE_TASKS;
+    }
+
+    // Receive task
+    Task receivedTask;
+    MPI_Recv(&receivedTask, sizeof(receivedTask), MPI_BYTE, reqProc, TASK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    pthread_mutex_lock(&taskListMutex);
+        TaskList.push_back(receivedTask);
+    pthread_mutex_unlock(&taskListMutex);
+
+    tasksReceived++;
+
+    return availabilityFl;
+}
+
+void * receiveRequests(void * args){
+    int availabilityFl;
+    MPI_Status status;
+
+    while(iCounter < MAX_LISTS_COUNT){
+
+        MPI_Recv(&availabilityFl, 1, MPI_INT, MPI_ANY_SOURCE, REQUEST_TAG, MPI_COMM_WORLD, &status);
+
+        if(availabilityFl == STOP_FL){
+            return nullptr;
+        }
+
+        if(TaskList.size() - iTask > UPLOAD_LIMIT){
+            availabilityFl = 0;
+        }
+
+        MPI_Send(&availabilityFl, 1, MPI_INT, status.MPI_SOURCE, RESPONSE_TAG, MPI_COMM_WORLD);
+
+        if(availabilityFl == 0){
+            continue;
+        }
+
+        pthread_mutex_lock(&receiverMutex);
+            Task taskToSend = TaskList.back();
+            TaskList.pop_back();
+        pthread_mutex_unlock(&receiverMutex);
+
+        MPI_Send(&taskToSend, sizeof(Task), MPI_BYTE, status.MPI_SOURCE, TASK_TAG, MPI_COMM_WORLD);
+        ++tasksSent;
+    }
 
     pthread_exit(nullptr);
 }
 
-void doTasks(int& iCounter, TaskList * TL, int& pRank, int& pSize){
-    double startTime, endTime, pDiff, timeSpent;
+void doTasks(){
+    double startTime, endTime, timeSpent;
+    int requestProcess;
+    int maxDiff = 0;
+    int uncompletedTasks;
+    for(iCounter = 0; iCounter < MAX_LISTS_COUNT; ++iCounter){
+        pthread_mutex_lock(&taskListMutex);
 
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-    int tasksCompleted = 0;
-
-    while(iCounter < MAX_LISTS_COUNT){
+        fillTasksList();
         startTime = MPI_Wtime();
 
-        fillTasksList(pRank, pSize, TL, iCounter);
+        while(TRUE){
+            for(; iTask < TaskList.size(); ++iTask){
+                pthread_mutex_unlock(&taskListMutex);
+                // Execute tasks by main (executor) thread
+                executeTasks(TaskList[iTask]);
+                pthread_mutex_lock(&taskListMutex);
+            }
+            pthread_mutex_unlock(&taskListMutex);
 
-        pthread_create(&pthreads[0], &attr, executeTasks, (void*) TL);
-        pthread_join(pthreads[0], nullptr);
+            /*requestProc = (pRank + proc) % pSize;
+            if(receiveTasks(requestProc) == NO_TASKS_AVAILABLE){
+                ++proc;
+            }*/
 
-        // Update global result on this iteration
-        double commonResult;
-        MPI_Allreduce(&globalResult, &commonResult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        globalResult = commonResult;
+            uncompletedTasks = TaskList.size() - 1 - iTask;
+            requestProcess = analyzeProcessesLoad(uncompletedTasks, maxDiff);
+
+            cout << "'" << "!" << "'" << endl;
+
+            if(receiveTasks(requestProcess) == NO_AVAILABLE_TASKS){
+                break;
+            }
+
+            pthread_mutex_lock(&taskListMutex);
+        }
+        pthread_mutex_unlock(&taskListMutex);
 
         endTime = MPI_Wtime();
+        timeSpent = endTime - startTime;
 
-        // Calculate iteration time
-        pDiff = endTime - startTime;
-        MPI_Reduce(&pDiff, &timeSpent, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-
-        // Processes sync
-        MPI_Barrier(MPI_COMM_WORLD);
-
-        // Print this iteration's results
-        printResults(pRank, tasksCompleted, timeSpent);
-
-        iCounter++;
+        printResults(timeSpent);
 
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    pthread_attr_destroy(&attr);
+    int stopFl= STOP_FL;
+    MPI_Send(&stopFl, 1, MPI_INT, pRank, REQUEST_TAG, MPI_COMM_WORLD);
+}
+
+void initThreads(){
+    if(pthread_create(&receiverThread, nullptr, receiveRequests, nullptr)){
+        std::cerr << "Error creating thread" << std::endl;
+        atError();
+    }
+
+    doTasks();
+
+    if(pthread_join(receiverThread, nullptr)){
+        std::cerr << "Error joining thread" << std::endl;
+        atError();
+    }
+}
+
+void go(){
+    MPI_Comm_size(MPI_COMM_WORLD, &pSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &pRank);
+
+    pthread_mutex_init(&taskListMutex, nullptr);
+    initThreads();
+    pthread_mutex_destroy(&taskListMutex);
 }
 
 int main(int argc, char ** argv){
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
-    int pRank, pSize;
-
-    MPI_Comm_size(MPI_COMM_WORLD, &pSize);
-    MPI_Comm_rank(MPI_COMM_WORLD, &pRank);
-
-    int iCounter = 0; // Iterations Counter
-
-    TaskList TL[TASKS_NUMBER];
-
-    doTasks(iCounter, TL, pRank, pSize);
+    go();
 
     MPI_Finalize();
+
+    return EXIT_SUCCESS;
 }
