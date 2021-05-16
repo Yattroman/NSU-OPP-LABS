@@ -1,6 +1,8 @@
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
+#include <cstring>
+#include <pthread.h>
 #include "mpi.h"
 
 #define THREADS_NUM 2
@@ -13,12 +15,31 @@
 using namespace std;
 
 double globalResult = 0;
-
 pthread_t pthreads[THREADS_NUM];
 
 typedef struct TaskList{
     int repeatNumber;
 } TaskList;
+
+typedef struct AnalyzeInfo{
+    int uncompletedTasks;
+    int procRankRequest;
+    int procSize;
+
+    int& maxDiff;
+    int& maxDiffRank;
+} AnalyzeInfo;
+
+typedef struct LoadInfo{
+    TaskList * addTL;
+    TaskList * mainTL;
+    int taskSent;
+} LoadInfo;
+
+void atError(){
+    MPI_Finalize();
+    exit(EXIT_FAILURE);
+}
 
 void printResults(int& pRank, int& tasksCompleted, double& timeSpent){
     cout << "Process rank: " << pRank << endl;
@@ -35,31 +56,76 @@ void fillTasksList(int pRank, int pSize, TaskList * TL, int iCounter){
     }
 }
 
+void * waitingNewTasks(void * args){
+
+}
+
+void * sendNewTasks(void * args){
+    // Analyze which process has maximal load
+    auto analyzeInf = (AnalyzeInfo*) args;
+
+    int uncompletedTasks = analyzeInf->uncompletedTasks;
+
+    int procRankRequest = analyzeInf->procRankRequest;
+    int uncompletedTasksRequest = analyzeInf->uncompletedTasks;
+
+    int procSize = analyzeInf->procSize;
+
+    int localDiff;
+    int differs[procSize];
+    int maxDiff = 0;
+    int maxDiffRank;
+
+    memset(differs, -1, procSize*sizeof(double));
+
+    MPI_Bcast(&uncompletedTasksRequest, 1, MPI_INT, procRankRequest, MPI_COMM_WORLD);
+
+    localDiff = uncompletedTasks - uncompletedTasksRequest;
+    MPI_Allgather(&localDiff, 1, MPI_INT, differs, 1, MPI_INT, MPI_COMM_WORLD);
+
+    for (int i = 0; i < procSize; ++i) {
+        if (differs[i] > maxDiff) {
+            maxDiff = differs[i];
+            maxDiffRank = i;
+        }
+    }
+
+    if(maxDiff > 3){
+        analyzeInf->maxDiff = maxDiff;
+        analyzeInf->maxDiffRank = maxDiffRank;
+    } else {
+        analyzeInf->maxDiff = -1;
+        analyzeInf->maxDiffRank = -1;
+    }
+
+    pthread_exit(nullptr);
+}
+
 void * executeTasks(void * args){
     // Executor deals
     auto TL = (TaskList*) args;
 
-    pthread_mutex_t globalResMutex;
-    pthread_mutex_init(&globalResMutex, nullptr);
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
     double localResult = 0;
 
+    pthread_create(&pthreads[1], &attr, waitingNewTasks, (void*) TL);
+
     for (int i = 0; i < TASKS_NUMBER; ++i) {
-        if(TL[i].repeatNumber < UPLOADING_START_VALUE){
-            // Analyzer вычисляет, у какого процесса по сравнению с этим больше всего разница в незавершенных заданиях
-            // Loader начинает подгрузку заданий с подходящего процесса на фоне вычислений
-            // Ставим флаг подрузки, чтобы снова не заходить в эту секцию
-            // Проблема может быть в круговой постоянной пересылке данных, если процессы выполняют задания +- одновременно
-        }
         for (int j = 0; j < TL[i].repeatNumber; ++j) {
 //            localResult += sin(i);
             localResult += 1;
         }
     }
 
-    pthread_mutex_lock(&globalResMutex);
+    pthread_join(pthreads[1], nullptr);
+
+    // Analyzer вычисляет, у какого процесса по сравнению с этим больше всего разница в незавершенных заданиях
+    // Loader начинает подгрузку заданий с подходящего процесса на фоне вычислений
+
     globalResult += localResult;
-    pthread_mutex_unlock(&globalResMutex);
 
     pthread_exit(nullptr);
 }
@@ -81,10 +147,9 @@ void doTasks(int& iCounter, TaskList * TL, int& pRank, int& pSize){
         pthread_create(&pthreads[0], &attr, executeTasks, (void*) TL);
         pthread_join(pthreads[0], nullptr);
 
+        // Update global result on this iteration
         double commonResult;
         MPI_Allreduce(&globalResult, &commonResult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-        // Update global result on this iteration
         globalResult = commonResult;
 
         endTime = MPI_Wtime();
@@ -100,6 +165,8 @@ void doTasks(int& iCounter, TaskList * TL, int& pRank, int& pSize){
         printResults(pRank, tasksCompleted, timeSpent);
 
         iCounter++;
+
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 
     pthread_attr_destroy(&attr);
@@ -117,11 +184,6 @@ int main(int argc, char ** argv){
     int iCounter = 0; // Iterations Counter
 
     TaskList TL[TASKS_NUMBER];
-
-//    double temp = 0;
-//    fillTasksList(pRank, pSize, TL, iCounter, temp);
-
-//    cout << temp << endl;
 
     doTasks(iCounter, TL, pRank, pSize);
 
