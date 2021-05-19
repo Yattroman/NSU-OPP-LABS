@@ -6,19 +6,22 @@
 
 #define TASKS_LIST_COUNT 4
 #define DEFAULT_TASKS_NUMBER 100
-#define REQUEST_TAG 900
-#define RESPONSE_TAG 90
+
+#define REQUEST_TAG 987
+#define RESPONSE_TAG 98
 #define TASK_TAG 9
-#define NO_AVAILABLE_TASKS 2
+
+#define NO_TASKS_IN_STOCK 2
 #define STOP_FL -1
-#define INADMISSIBLE_VALUE 5
 #define L 77777
+
+#define DEFAULT_TASK_VALUE 0
 
 struct Task {
     int repeatNumber;
 
     explicit Task(int num) : repeatNumber(num) {}
-    Task() : Task(0) {}
+    Task() : Task(DEFAULT_TASK_VALUE) {}
 };
 
 using namespace std;
@@ -27,6 +30,8 @@ int pSize;
 int pRank;
 int iTask;
 int iCounter;
+
+int inadmissibleValue;
 
 double globalResult;
 double ImbalanceTime;
@@ -40,7 +45,8 @@ vector<Task> TaskList;
 pthread_t receiverThread;
 pthread_t executorThread;
 
-pthread_mutex_t TaskListMutex;
+pthread_mutex_t ExecutorMutex;
+pthread_mutex_t ReceiverMutex;
 
 void errorHandler(){
     MPI_Finalize();
@@ -59,16 +65,25 @@ void fillTaskList(){
     }
 }
 
+void subTask1(Task task, double& intermediateValue){
+    intermediateValue = pow(sqrt(task.repeatNumber) * sqrt(task.repeatNumber), -3.4);
+}
+
+void subTask2(double& intermediateValue){
+    intermediateValue = intermediateValue / 29062001.47;
+}
+
+void subTaskFinal(double& intermediateValue){
+    globalResult = globalResult + 1e9 * pow(intermediateValue, 1/2);
+}
+
 void executeTasks(Task task){
     double intermediateValue;
 
-    for(int i = 0; i  < task.repeatNumber ; ++i){
-        intermediateValue = sqrt(task.repeatNumber) * sqrt(task.repeatNumber);
-        intermediateValue = pow(intermediateValue, -3.4);
-        intermediateValue /= 29062001.47;
-        intermediateValue += 21301.47*324.342;
-        intermediateValue -= 21132.21*823.702;
-        globalResult += sqrt(intermediateValue) * 1e9;
+    for(int i = 0; i  < task.repeatNumber; ++i){
+        subTask1(task, intermediateValue);
+        subTask2(intermediateValue);
+        subTaskFinal(intermediateValue);
     }
 }
 
@@ -83,30 +98,31 @@ void calculateImbalanceTimeAndPortion(double &timeSpent){
 
 int receiveTasks(int requestProcess){
     if(requestProcess == pRank){
-        return NO_AVAILABLE_TASKS;
+        return NO_TASKS_IN_STOCK;
     }
-    int availabilityFl = 1;
+    int inStockFl = 1;
 
-    MPI_Send(&availabilityFl,1, MPI_INT, requestProcess, REQUEST_TAG, MPI_COMM_WORLD);
-    MPI_Recv(&availabilityFl,1, MPI_INT, requestProcess, RESPONSE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Send(&inStockFl,1, MPI_INT, requestProcess, REQUEST_TAG, MPI_COMM_WORLD);
 
-    if(!availabilityFl){
-        return NO_AVAILABLE_TASKS;
+    MPI_Recv(&inStockFl,1, MPI_INT, requestProcess, RESPONSE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    if(inStockFl == 0){
+        return NO_TASKS_IN_STOCK;
     }
 
     Task receivedTask;
     MPI_Recv(&receivedTask, sizeof(receivedTask), MPI_BYTE, requestProcess, TASK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    pthread_mutex_lock(&TaskListMutex);
+    pthread_mutex_lock(&ExecutorMutex);
         TaskList.push_back(receivedTask);
-    pthread_mutex_unlock(&TaskListMutex);
+    pthread_mutex_unlock(&ExecutorMutex);
 
     tasksReceived++;
 
-    return availabilityFl;
+    return inStockFl;
 }
 
-void * doTasks(void * args){
+void * doTasks(void * args){ // Executor routine
     int requestProcess;
     int addition = 0;
     double startTime, endTime, timeSpent;
@@ -114,29 +130,28 @@ void * doTasks(void * args){
     for(iCounter = 0; iCounter < TASKS_LIST_COUNT; ++iCounter, iTask = 0, addition = 0){
         tasksReceived = 0;
 
-        pthread_mutex_lock(&TaskListMutex);
+        pthread_mutex_lock(&ExecutorMutex);
         fillTaskList();
 
         startTime = MPI_Wtime();
         while(addition < pSize){
             while(iTask < TaskList.size()){
-                pthread_mutex_unlock(&TaskListMutex);
+                pthread_mutex_unlock(&ExecutorMutex);
                     executeTasks(TaskList[iTask]);
-                pthread_mutex_lock(&TaskListMutex);
+                pthread_mutex_lock(&ExecutorMutex);
 
                 ++iTask;
             }
 
-            pthread_mutex_unlock(&TaskListMutex);
-
-            requestProcess = (pRank + addition) % pSize;
-            if(receiveTasks(requestProcess) == NO_AVAILABLE_TASKS){
-                ++addition;
-            }
-            pthread_mutex_lock(&TaskListMutex);
+            pthread_mutex_unlock(&ExecutorMutex);
+                requestProcess = (pRank + addition) % pSize;
+                if(receiveTasks(requestProcess) == NO_TASKS_IN_STOCK){
+                    ++addition;
+                }
+            pthread_mutex_lock(&ExecutorMutex);
         }
 
-        pthread_mutex_unlock(&TaskListMutex);
+        pthread_mutex_unlock(&ExecutorMutex);
         endTime = MPI_Wtime();
 
         timeSpent = endTime - startTime;
@@ -146,12 +161,12 @@ void * doTasks(void * args){
         tasksSent = 0;
         MPI_Barrier(MPI_COMM_WORLD);
 
-        if(!pRank) {
-            std::cout << std::endl;
-        }
-
         calculateImbalanceTimeAndPortion(timeSpent);
 
+
+        if(pRank == 0) {
+            std::cout << std::endl;
+        }
         if(pRank == pSize-1){
             std::cout << "Imbalance time: " << ImbalanceTime << "; Imbalance portion: " << ImbalancePortion << std::endl;
         }
@@ -160,43 +175,46 @@ void * doTasks(void * args){
     int stopFlag = STOP_FL;
     MPI_Send(&stopFlag, 1, MPI_INT, pRank, REQUEST_TAG, MPI_COMM_WORLD);
 
-    return nullptr;
+    pthread_exit(nullptr);
 }
 
-void* receiveRequests(void* args){
-    int availabilityFl;
+void* receiveRequests(void* args){ // Receiver routine
+    int inStockFl;
     MPI_Status status;
     while(iCounter < TASKS_LIST_COUNT){
-        MPI_Recv(&availabilityFl, 1, MPI_INT, MPI_ANY_SOURCE, REQUEST_TAG, MPI_COMM_WORLD, &status);
-        if(availabilityFl == STOP_FL){
-            return nullptr;
+        MPI_Recv(&inStockFl, 1, MPI_INT, MPI_ANY_SOURCE, REQUEST_TAG, MPI_COMM_WORLD, &status);
+        if(inStockFl == STOP_FL){
+            pthread_exit(nullptr);
         }
 
-        pthread_mutex_lock(&TaskListMutex);
-            if(iTask > TaskList.size() - INADMISSIBLE_VALUE){
-                availabilityFl = 0;
+        pthread_mutex_lock(&ReceiverMutex);
+            if(iTask + inadmissibleValue > TaskList.size()){
+                inStockFl = 0;
             }
-        pthread_mutex_unlock(&TaskListMutex);
+        pthread_mutex_unlock(&ReceiverMutex);
 
-        MPI_Send(&availabilityFl, 1, MPI_INT, status.MPI_SOURCE, RESPONSE_TAG, MPI_COMM_WORLD);
-        if(!availabilityFl){
+        MPI_Send(&inStockFl, 1, MPI_INT, status.MPI_SOURCE, RESPONSE_TAG, MPI_COMM_WORLD);
+        if(inStockFl == 0){
             continue;
         }
 
-        pthread_mutex_lock(&TaskListMutex);
+        pthread_mutex_lock(&ReceiverMutex);
             Task taskToSend = TaskList.back();
             TaskList.pop_back();
-        pthread_mutex_unlock(&TaskListMutex);
+        pthread_mutex_unlock(&ReceiverMutex);
 
         MPI_Send(&taskToSend, sizeof(Task), MPI_BYTE, status.MPI_SOURCE, TASK_TAG, MPI_COMM_WORLD);
 
         ++tasksSent;
     }
 
-    return nullptr;
+    pthread_exit(nullptr);
 }
 
-void createThreads(){
+void startWorkWithPthreads(){
+    pthread_mutex_init(&ExecutorMutex, nullptr);
+    pthread_mutex_init(&ReceiverMutex, nullptr);
+
     int statusOne = pthread_create(&receiverThread, nullptr, receiveRequests, nullptr);
     int statusTwo = pthread_create(&executorThread, nullptr, doTasks, nullptr);
 
@@ -212,6 +230,9 @@ void createThreads(){
         std::cerr << "Error joining thread" << std::endl;
         errorHandler();
     }
+
+    pthread_mutex_destroy(&ExecutorMutex);
+    pthread_mutex_destroy(&ReceiverMutex);
 }
 
 int main(int argc, char* argv[]){
@@ -221,11 +242,9 @@ int main(int argc, char* argv[]){
     MPI_Comm_size(MPI_COMM_WORLD, &pSize);
     MPI_Comm_rank(MPI_COMM_WORLD, &pRank);
 
-    pthread_mutex_init(&TaskListMutex, nullptr);
+    inadmissibleValue = pSize + 1;
 
-    createThreads();
-
-    pthread_mutex_destroy(&TaskListMutex);
+    startWorkWithPthreads();
 
     MPI_Finalize();
 
